@@ -24,18 +24,10 @@ const server = http.createServer(app);
 // --- Security Headers ---
 app.use(helmet());
 
-// --- CORS: Restrict to known frontend origin ---
+// --- CORS: Allow all origins so mobile apps don't get blocked ---
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (origin.startsWith('http://localhost:') || origin === ALLOWED_ORIGIN || origin.startsWith('exp://') || origin.includes('vercel.app')) {
-      return callback(null, true);
-    }
-    return callback(new Error('Not allowed by CORS'), false);
-  },
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  credentials: true,
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
 }));
 
 app.use(express.json());
@@ -65,15 +57,8 @@ app.use(globalLimiter);
 // --- Socket.io: Restrict to known frontend origin ---
 const io = new Server(server, {
   cors: {
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-      if (origin.startsWith('http://localhost:') || origin === ALLOWED_ORIGIN || origin.startsWith('exp://') || origin.includes('vercel.app')) {
-        return callback(null, true);
-      }
-      return callback(new Error('Not allowed by CORS'), false);
-    },
-    methods: ['GET', 'POST'],
-    credentials: true,
+    origin: '*',
+    methods: ['GET', 'POST']
   }
 });
 
