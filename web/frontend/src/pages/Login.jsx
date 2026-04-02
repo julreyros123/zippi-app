@@ -29,8 +29,9 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
-      
+      const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
+      const res = await axios.post(`${baseUrl}/api/auth/login`, { email, password });
+
       // Save or clear remembered email
       if (rememberMe) {
         localStorage.setItem('zippi_saved_email', email);
@@ -83,9 +84,9 @@ export default function Login() {
       </div>
       
       {/* RIGHT SIDE - FORM */}
-      <div className="flex-1 flex flex-col items-center relative px-6 py-12 lg:px-16 overflow-y-auto lg:h-[100dvh]">
+      <div className="flex-1 flex flex-col relative px-6 py-6 lg:px-16 overflow-y-auto h-[100dvh]">
 
-        <div className="z-10 w-full max-w-[420px] mx-auto my-auto pt-4 pb-12">
+        <div className="z-10 w-full max-w-[420px] m-auto py-12 flex-shrink-0">
           {/* Mobile Logo */}
           <div className="flex justify-center mb-8 lg:hidden">
             <div className="w-16 h-16 rounded-md bg-indigo-600 flex items-center justify-center  ">
