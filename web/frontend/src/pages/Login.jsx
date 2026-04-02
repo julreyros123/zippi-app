@@ -83,9 +83,9 @@ export default function Login() {
       </div>
       
       {/* RIGHT SIDE - FORM */}
-      <div className="flex-1 flex flex-col items-center justify-center relative px-6 py-12 lg:px-16 overflow-y-auto">
-        
-        <div className="z-10 w-full max-w-[420px] m-auto">
+      <div className="flex-1 flex flex-col items-center relative px-6 py-12 lg:px-16 overflow-y-auto lg:h-[100dvh]">
+
+        <div className="z-10 w-full max-w-[420px] mx-auto my-auto pt-4 pb-12">
           {/* Mobile Logo */}
           <div className="flex justify-center mb-8 lg:hidden">
             <div className="w-16 h-16 rounded-md bg-indigo-600 flex items-center justify-center  ">
