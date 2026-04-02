@@ -9,10 +9,11 @@ import {
   Sparkles, GraduationCap, UserPlus, Check, Megaphone,
   Trash2, X, Bell, ChevronDown, User, Shield, Settings,
   Sun, Moon, Heart, MessageCircle, MoreHorizontal, Monitor,
-  Type, Volume2, AlertTriangle, Sliders
+  Type, Volume2, AlertTriangle, Sliders, Menu
 } from 'lucide-react';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = `${(import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '')}/api`;
+const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
 
 const NAV_ITEMS = [
   { id: 'home',         label: 'Home',          icon: Home },
@@ -148,7 +149,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return;
-    socketRef.current = io('http://localhost:5000');
+    socketRef.current = io(SOCKET_URL);
     
     socketRef.current.on('dashboard_update', ({ type, targetUserId }) => {
       if (type === 'event') fetchEvents();
