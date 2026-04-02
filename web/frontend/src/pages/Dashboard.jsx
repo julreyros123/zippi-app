@@ -56,6 +56,7 @@ export default function Dashboard() {
   const { theme, setTheme, fontSize, setFontSize, notificationsEnabled, setNotificationsEnabled } = useSettingsStore();
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState('home');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isLight = theme === 'light';
 
@@ -337,26 +338,43 @@ export default function Dashboard() {
     setLikedAnnouncements(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
-
+  // Close mobile menu when navigating
+  const handleNavClick = (id) => {
+    setActiveNav(id);
+    setIsMobileMenuOpen(false);
+  };
 
   return (
     <div className="flex h-screen bg-gray-950 text-gray-100 overflow-hidden">
 
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-30 md:hidden backdrop-blur-sm transition-opacity" 
+          onClick={() => setIsMobileMenuOpen(false)} 
+        />
+      )}
+
       {/* ── Left Sidebar ── */}
-      <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col shrink-0 z-10">
+      <aside className={`fixed inset-y-0 left-0 z-40 w-64 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} bg-gray-900 border-r border-gray-800 flex flex-col shrink-0`}>
         {/* Logo */}
-        <div className="h-16 flex items-center gap-3 px-5 border-b border-gray-800">
-          <div className="w-9 h-9 rounded bg-gray-800 flex items-center justify-center shadow-sm">
-            <GraduationCap size={20} className="text-white" />
+        <div className="h-16 flex items-center justify-between px-5 border-b border-gray-800">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded bg-gray-800 flex items-center justify-center shadow-sm">
+              <GraduationCap size={20} className="text-white" />
+            </div>
+            <div>
+              <p className="font-display font-extrabold text-white leading-tight tracking-tight">Zippi</p>
+              <p className="text-[10px] text-gray-500 font-medium">Study Hub</p>
+            </div>
           </div>
-          <div>
-            <p className="font-display font-extrabold text-white leading-tight tracking-tight">Zippi</p>
-            <p className="text-[10px] text-gray-500 font-medium">Study Hub</p>
-          </div>
+          <button className="md:hidden text-gray-400 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>
+            <X size={20} />
+          </button>
         </div>
 
         {/* User card (self) */}
-        <div className="mx-2 mt-4 mb-2 p-2.5 flex items-center gap-3 bg-gray-800/50 hover:bg-gray-800 rounded-md cursor-pointer transition-colors" onClick={() => setActiveNav('profile')}>
+        <div className="mx-2 mt-4 mb-2 p-2.5 flex items-center gap-3 bg-gray-800/50 hover:bg-gray-800 rounded-md cursor-pointer transition-colors" onClick={() => handleNavClick('profile')}>
           <div className="relative shrink-0">
             <img src={`https://ui-avatars.com/api/?background=random&color=fff&name=${user?.username}`} alt="avatar"
               className="w-10 h-10 rounded-full bg-gray-900 border border-gray-700" />
@@ -372,7 +390,7 @@ export default function Dashboard() {
         {/* Navigation */}
         <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
           {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => setActiveNav(id)}
+            <button key={id} onClick={() => handleNavClick(id)}
               className={`w-full flex items-center gap-3 px-4 py-2 rounded text-sm font-medium transition-all ${
                 activeNav === id ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800/60 hover:text-gray-200'
               }`}
@@ -430,8 +448,11 @@ export default function Dashboard() {
         {/* No background blurs for a sharp flat UI */}
 
         {/* ── Top Navbar ── */}
-        <header className="h-16 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-8 shrink-0 sticky top-0 z-20">
-          <div className="flex items-center gap-4">
+        <header className="h-16 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-4 md:px-8 shrink-0 sticky top-0 z-20">
+          <div className="flex items-center gap-3 md:gap-4">
+            <button className="md:hidden p-2 -ml-2 text-gray-400 hover:text-white rounded-md hover:bg-gray-800 transition-colors" onClick={() => setIsMobileMenuOpen(true)}>
+              <Menu size={24} />
+            </button>
             <h2 className="font-display font-semibold text-lg text-white tracking-wide">
               {activeNav === 'settings' ? 'System Settings' : activeNav === 'profile' ? 'My Profile' : (NAV_ITEMS.find(n => n.id === activeNav)?.label || 'Dashboard')}
             </h2>
@@ -808,7 +829,7 @@ export default function Dashboard() {
               })()}
 
               <div className="flex items-center justify-between mb-4 border-b border-gray-800 pb-2">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">All Students</h3>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">All Students</h3>
                 <div className="text-[10px] text-gray-600 font-bold">{classmates.length} total students on Zippi</div>
               </div>
 
@@ -1130,27 +1151,6 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-
-              {/* Notifications */}
-              <div className="h-px bg-gray-800 my-5" />
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Notifications</p>
-              <div className="bg-gray-800 rounded border border-gray-700/50 divide-y divide-gray-700/60">
-                <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-700/30 transition-colors"
-                  onClick={() => setNotificationsEnabled(!notificationsEnabled)}>
-                  <div>
-                    <p className="text-sm font-semibold text-white">Desktop Notifications</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Receive alerts when Zippi is in the background</p>
-                  </div>
-                  <div className={`w-10 h-5 rounded-full relative transition-colors ${notificationsEnabled ? 'bg-blue-600' : 'bg-gray-600'}`}>
-                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${notificationsEnabled ? 'left-[22px]' : 'left-0.5'}`} />
-                  </div>
-                </div>
-              </div>
-
-              {/* About */}
-              <div className="h-px bg-gray-800 my-5" />
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">About</p>
-              <div className="bg-gray-800 rounded border border-gray-700/50 divide-y divide-gray-700/60">
                 <div className="p-4 flex items-center justify-between">
                   <p className="text-sm text-gray-400">Version</p>
                   <span className="text-xs font-mono bg-gray-900 border border-gray-700 px-2 py-1 rounded text-gray-400">Zippi v1.0.0</span>
