@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Link, Navigate } from 'react-router-dom';
 import useAuthStore from './store/authStore';
+import { MessageSquare, Users, Calendar, UserPlus, Smartphone, Shield, ArrowRight, CheckCircle2, LayoutDashboard } from 'lucide-react';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ChatInterface from './pages/ChatInterface';
@@ -58,32 +59,32 @@ function App() {
 
 const FEATURES = [
   {
-    icon: '💬',
+    icon: <MessageSquare size={22} className="text-white" />,
     title: 'Real-time Group Chat',
     desc: 'Instant messaging with channels, reactions, file sharing, and typing indicators.'
   },
   {
-    icon: '📚',
+    icon: <Users size={22} className="text-white" />,
     title: 'Study Groups',
     desc: 'Create private or public study rooms for any subject, with tags to make them discoverable.'
   },
   {
-    icon: '📅',
+    icon: <Calendar size={22} className="text-white" />,
     title: 'Events & Announcements',
     desc: 'Schedule study sessions, post class updates, and keep your whole network in sync.'
   },
   {
-    icon: '🤝',
+    icon: <UserPlus size={22} className="text-white" />,
     title: 'Connect with Classmates',
     desc: 'Find study partners, send connection requests, and build your academic network.'
   },
   {
-    icon: '📱',
+    icon: <Smartphone size={22} className="text-white" />,
     title: 'Cross-Platform',
     desc: 'Use Zippi on web or mobile — your data is always in sync across all your devices.'
   },
   {
-    icon: '🔒',
+    icon: <Shield size={22} className="text-white" />,
     title: 'Private & Secure',
     desc: 'JWT-authenticated, rate-limited, and CORS-protected so only your group can access your data.'
   }
@@ -100,29 +101,30 @@ function Landing() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 flex flex-col">
-
+    <div className="min-h-[100dvh] bg-[#0A0A0A] text-gray-100 flex flex-col font-sans selection:bg-indigo-500/30">
+      
       {/* Navbar */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-gray-950/90 backdrop-blur-xl border-b border-gray-800 shadow-xl shadow-black/20' : 'bg-transparent'}`}>
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
-              <span className="text-white font-extrabold text-lg">Z</span>
-            </div>
-            <span className="font-extrabold text-xl text-white tracking-tight">Zippi</span>
-          </div>
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-[#0A0A0A]/80 backdrop-blur-md border-b border-gray-800/50' : 'bg-transparent pt-2'}`}>
+        <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+              <span className="text-white font-extrabold text-sm">Z</span>
+            </div>
+            <span className="font-bold text-xl text-white tracking-tight">Zippi</span>
+          </div>
+          <div className="flex items-center gap-4">
             {isAuthenticated ? (
-              <Link to="/dashboard" className="px-5 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-colors shadow-lg shadow-blue-500/20">
-                Go to Dashboard →
+              <Link to="/dashboard" className="px-5 py-2 rounded-md bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-colors flex items-center gap-2">
+                <LayoutDashboard size={16} />
+                Dashboard
               </Link>
             ) : (
               <>
-                <Link to="/login" className="px-5 py-2 rounded-full text-gray-300 hover:text-white font-medium text-sm transition-colors">
-                  Sign In
+                <Link to="/login" className="hidden sm:block px-4 py-2 text-gray-400 hover:text-white font-medium text-sm transition-colors">
+                  Log in
                 </Link>
-                <Link to="/register" className="px-5 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-colors shadow-lg shadow-blue-500/20">
-                  Get Started Free
+                <Link to="/register" className="px-5 py-2 rounded-md bg-white text-black hover:bg-gray-100 font-semibold text-sm transition-colors shadow-sm">
+                  Sign up
                 </Link>
               </>
             )}
@@ -131,102 +133,107 @@ function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative flex flex-col items-center justify-center text-center min-h-screen pt-16 px-6 overflow-hidden">
-        {/* Background glows */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute top-[10%] left-[15%] w-[55%] h-[55%] rounded-full bg-blue-700/15 blur-[130px]" />
-          <div className="absolute bottom-[10%] right-[10%] w-[45%] h-[45%] rounded-full bg-emerald-700/15 blur-[130px]" />
-          <div className="absolute top-[40%] left-[40%] w-[30%] h-[30%] rounded-full bg-purple-700/10 blur-[100px]" />
-        </div>
+      <section className="relative flex flex-col items-center justify-center text-center min-h-[90vh] pt-24 pb-16 px-6 overflow-hidden">
+        {/* Subtle grid background */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
 
-        {/* Badge */}
-        <div className="relative mb-8 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300 text-sm font-semibold">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          The study app built for students
-        </div>
+        <div className="relative z-10 max-w-4xl mx-auto flex flex-col items-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/10 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-8">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+            Introducing Zippi 1.0
+          </div>
 
-        {/* Headline */}
-        <h1 className="relative text-6xl md:text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-white via-blue-100 to-emerald-200 leading-tight tracking-tight mb-6">
-          Study Together,<br />
-          <span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-            Achieve More.
-          </span>
-        </h1>
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-white tracking-tight mb-8 leading-[1.1]">
+            Your entire academic life, <br className="hidden md:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+              organized in one place.
+            </span>
+          </h1>
 
-        <p className="relative text-xl text-gray-400 max-w-2xl leading-relaxed mb-12">
-          Zippi is the cross-platform study hub — group chat, study groups, events, announcements, and classmate connections all in one place.
-        </p>
+          <p className="text-lg md:text-xl text-gray-400 max-w-2xl leading-relaxed mb-10">
+            Zippi brings your study groups, real-time chats, course announcements, and class materials together into a single, lightning-fast workspace.
+          </p>
 
-        <div className="relative flex flex-col sm:flex-row gap-4 items-center">
-          <Link to={isAuthenticated ? '/dashboard' : '/register'}
-            className="px-8 py-4 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-emerald-500 text-white font-bold text-lg transition-all shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105 active:scale-95">
-            {isAuthenticated ? 'Open Dashboard →' : 'Start for Free →'}
-          </Link>
-          <Link to="/login" className="px-8 py-4 rounded-full border border-gray-700 hover:border-gray-500 text-gray-300 hover:text-white font-semibold text-lg transition-all">
-            Sign In
-          </Link>
-        </div>
-
-        {/* Mini stat strip */}
-        <div className="relative mt-16 flex items-center gap-8 text-sm text-gray-500 flex-wrap justify-center">
-          {['100% Free', 'No credit card', 'Works on mobile + web', 'Open source friendly'].map(item => (
-            <div key={item} className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-              {item}
-            </div>
-          ))}
+          <div className="flex flex-col sm:flex-row gap-4 items-center w-full sm:w-auto">
+            <Link to={isAuthenticated ? '/dashboard' : '/register'}
+              className="w-full sm:w-auto px-8 py-3.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-base transition-all flex items-center justify-center gap-2 shadow-[0_0_40px_-10px_rgba(79,70,229,0.5)]">
+              {isAuthenticated ? 'Open Dashboard' : 'Get Started for Free'}
+              <ArrowRight size={18} />
+            </Link>
+            {!isAuthenticated && (
+              <Link to="/login" className="w-full sm:w-auto px-8 py-3.5 rounded-md border border-gray-800 hover:bg-gray-900 text-white font-semibold text-base transition-all flex items-center justify-center">
+                Sign in to your account
+              </Link>
+            )}
+          </div>
         </div>
       </section>
 
+      {/* Trust/Social Proof Strip */}
+      <div className="border-y border-gray-800/50 bg-[#0A0A0A]/50 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-6 py-6 sm:py-8 flex flex-col md:flex-row items-center justify-between gap-6 opacity-70">
+          <p className="text-sm font-medium text-gray-500 uppercase tracking-widest">Trusted by students at</p>
+          <div className="flex items-center justify-center gap-8 flex-wrap grayscale contrast-200 opacity-60">
+            {/* Generic placeholder university names styled nicely */}
+            <span className="font-serif text-xl font-bold tracking-tighter">Stanford</span>
+            <span className="font-sans text-xl font-black tracking-tight">MIT</span>
+            <span className="font-serif text-xl italic tracking-tight">Harvard</span>
+            <span className="font-sans text-lg font-bold tracking-widest">BERKELEY</span>
+            <span className="font-serif text-xl font-bold tracking-tight">Oxford</span>
+          </div>
+        </div>
+      </div>
+
       {/* Features Section */}
-      <section className="relative py-24 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="text-blue-400 font-semibold text-sm uppercase tracking-widest mb-3">Everything you need</p>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4">Built for student life</h2>
-            <p className="text-gray-500 text-lg max-w-xl mx-auto">All the tools you need to collaborate, communicate, and succeed — in one seamless app.</p>
+      <section className="py-24 md:py-32 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-16 md:mb-24">
+            <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 tracking-tight">Everything you need to <br/> ace your semester.</h2>
+            <p className="text-gray-400 text-lg md:text-xl max-w-2xl">Zippi eliminates context-switching by combining messaging, scheduling, and collaboration in a distraction-free environment.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
             {FEATURES.map((f, i) => (
-              <div key={i} className="group relative p-6 rounded-2xl border border-gray-800 bg-gray-900/50 hover:border-blue-500/40 hover:bg-gray-900 transition-all duration-300 hover:-translate-y-1">
-                <div className="w-12 h-12 rounded-2xl bg-gray-800 border border-gray-700 flex items-center justify-center text-2xl mb-4 group-hover:border-blue-500/40 transition-colors">
+              <div key={i} className="group relative">
+                <div className="w-12 h-12 rounded-lg bg-gray-900 border border-gray-800 flex items-center justify-center mb-6 group-hover:border-indigo-500/50 transition-colors shadow-sm">
                   {f.icon}
                 </div>
-                <h3 className="font-bold text-white text-lg mb-2">{f.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{f.desc}</p>
+                <h3 className="font-bold text-white text-xl mb-3 tracking-tight">{f.title}</h3>
+                <p className="text-gray-400 text-base leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="relative py-24 px-6">
-        <div className="max-w-3xl mx-auto text-center">
-          <div className="relative p-12 rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-600/10 via-gray-900 to-emerald-600/10 overflow-hidden">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-[2px] bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
-            <h2 className="text-4xl font-extrabold text-white mb-4">Ready to start studying smarter?</h2>
-            <p className="text-gray-400 mb-8 text-lg">Join Zippi for free. No credit card needed.</p>
-            <Link to={isAuthenticated ? '/dashboard' : '/register'}
-              className="inline-block px-10 py-4 rounded-full bg-gradient-to-r from-blue-600 to-emerald-500 text-white font-bold text-lg hover:opacity-90 transition-all shadow-2xl shadow-blue-500/30 hover:scale-105 active:scale-95">
-              {isAuthenticated ? 'Go to Dashboard →' : 'Create Your Free Account →'}
-            </Link>
-          </div>
+      {/* Bottom CTA */}
+      <section className="py-24 px-6 border-t border-gray-800/60 bg-[#0c0c0e]">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 tracking-tight">Stop juggling apps. <br className="hidden sm:block"/>Start studying smarter.</h2>
+          <p className="text-gray-400 text-lg mb-10">Set up your first study group in less than 60 seconds.</p>
+          <Link to={isAuthenticated ? '/dashboard' : '/register'}
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-md bg-white hover:bg-gray-100 text-black font-bold text-lg transition-colors">
+            {isAuthenticated ? 'Go to Dashboard' : 'Sign Up Free'}
+            <ArrowRight size={20} />
+          </Link>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-800 py-8 px-6 text-center text-gray-600 text-sm">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-600 to-emerald-500 flex items-center justify-center">
-            <span className="text-white font-bold text-xs">Z</span>
+      <footer className="border-t border-gray-800/80 py-12 px-6 bg-[#0A0A0A]">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded bg-indigo-600 flex items-center justify-center">
+              <span className="text-white font-bold text-xs">Z</span>
+            </div>
+            <span className="font-bold text-gray-300">Zippi</span>
           </div>
-          <span className="font-bold text-gray-400">Zippi</span>
+          <div className="flex items-center gap-6 text-sm font-medium text-gray-500">
+             <Link to="/login" className="hover:text-gray-300 transition-colors">Log in</Link>
+             <Link to="/register" className="hover:text-gray-300 transition-colors">Sign up</Link>
+          </div>
+          <p className="text-gray-600 text-sm">© {new Date().getFullYear()} Zippi Inc. All rights reserved.</p>
         </div>
-        <p>© {new Date().getFullYear()} Zippi. The cross-platform study hub for students.</p>
       </footer>
     </div>
   );
