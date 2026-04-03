@@ -1,6 +1,6 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import useAuthStore from '../store/authStore';
 import useChatStore from '../store/chatStore';
 import { API_URL, SOCKET_URL } from '../constants/Config';
@@ -14,8 +14,40 @@ export default function Chat() {
   const { channels, setChannels, messages, setMessages, addMessage, activeChannel, setActiveChannel } = useChatStore();
   const [inputText, setInputText] = useState('');
   const [view, setView] = useState<'channels' | 'messages'>('channels');
+  const [publicChannels, setPublicChannels] = useState<any[]>([]);
+  const [joiningChannelId, setJoiningChannelId] = useState<string | null>(null);
   // simple auto-scroll mechanism using flatlist
   const flatListRef = useRef<FlatList>(null);
+
+  const fetchMyChannels = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/channels`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setChannels(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, [token, setChannels]);
+
+  const fetchPublicChannels = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/channels/search?q=`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPublicChannels(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, [token]);
 
   useEffect(() => {
     if (!user || !token) {
@@ -38,23 +70,11 @@ export default function Chat() {
     };
   }, [user, token]);
 
-  // Fetch Channels on mount
   useEffect(() => {
-    const fetchChannels = async () => {
-      try {
-        const res = await fetch(`${API_URL}/channels`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setChannels(data);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    if (token) fetchChannels();
-  }, [token]);
+    if (!token) return;
+    fetchMyChannels();
+    fetchPublicChannels();
+  }, [token, fetchMyChannels, fetchPublicChannels]);
 
   // Fetch Messages when activeChannel changes
   useEffect(() => {
@@ -104,6 +124,30 @@ export default function Chat() {
     setView('messages');
   };
 
+  const handleJoinChannel = async (channelId: string) => {
+    if (!token) return;
+    setJoiningChannelId(channelId);
+    try {
+      const res = await fetch(`${API_URL}/channels/${channelId}/join`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        await fetchMyChannels();
+        await fetchPublicChannels();
+        Alert.alert('Joined', 'You joined the channel successfully.');
+      } else {
+        const data = await res.json().catch(() => ({}));
+        Alert.alert('Join failed', data.error || 'Unable to join this channel right now.');
+      }
+    } catch (error) {
+      Alert.alert('Connection issue', 'Could not join channel. Please try again.');
+    } finally {
+      setJoiningChannelId(null);
+    }
+  };
+
   if (view === 'channels') {
     return (
       <View style={styles.container}>
@@ -117,27 +161,57 @@ export default function Chat() {
           </TouchableOpacity>
         </View>
 
-        {channels.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>No channels yet</Text>
-            <Text style={styles.emptySubtitle}>Create or join a channel on web, then refresh this screen.</Text>
+        <ScrollView contentContainerStyle={{ padding: 16 }}>
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionTitle}>My Channels</Text>
+            <TouchableOpacity onPress={() => { fetchMyChannels(); fetchPublicChannels(); }}>
+              <Text style={styles.refreshText}>Refresh</Text>
+            </TouchableOpacity>
           </View>
-        ) : (
-          <FlatList
-            data={channels}
-            keyExtractor={item => item.id.toString()}
-            contentContainerStyle={{ padding: 16 }}
-            renderItem={({ item }) => (
+
+          {channels.length === 0 ? (
+            <View style={styles.emptyStateCard}>
+              <Text style={styles.emptyTitle}>No channels yet</Text>
+              <Text style={styles.emptySubtitle}>Join a public channel below to get started.</Text>
+            </View>
+          ) : (
+            channels.map((item) => (
               <TouchableOpacity 
-                style={styles.channelItem} 
+                key={item.id}
+                style={styles.channelItem}
                 onPress={() => selectChannel(item.id)}
               >
                 <Text style={styles.channelIcon}>#</Text>
                 <Text style={styles.channelName}>{item.name}</Text>
               </TouchableOpacity>
-            )}
-          />
-        )}
+            ))
+          )}
+
+          <Text style={[styles.sectionTitle, { marginTop: 18, marginBottom: 10 }]}>Discover Channels</Text>
+          {publicChannels.filter((c) => !channels.some((my) => my.id === c.id)).length === 0 ? (
+            <View style={styles.emptyStateCard}>
+              <Text style={styles.emptySubtitle}>No public channels available right now.</Text>
+            </View>
+          ) : (
+            publicChannels
+              .filter((c) => !channels.some((my) => my.id === c.id))
+              .map((item) => (
+                <View key={item.id} style={styles.publicChannelItem}>
+                  <View style={{ flex: 1, marginRight: 10 }}>
+                    <Text style={styles.channelName}># {item.name}</Text>
+                    {!!item.description && <Text style={styles.channelDescription}>{item.description}</Text>}
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.joinButton, joiningChannelId === item.id && styles.joinButtonDisabled]}
+                    disabled={joiningChannelId === item.id}
+                    onPress={() => handleJoinChannel(item.id)}
+                  >
+                    <Text style={styles.joinButtonText}>{joiningChannelId === item.id ? 'Joining...' : 'Join'}</Text>
+                  </TouchableOpacity>
+                </View>
+              ))
+          )}
+        </ScrollView>
       </View>
     );
   }
@@ -226,9 +300,40 @@ const styles = StyleSheet.create({
   },
   channelIcon: { color: '#6B7280', fontSize: 18, marginRight: 12 },
   channelName: { color: '#E5E7EB', fontSize: 16, fontWeight: '600' },
+  sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  sectionTitle: { color: '#E5E7EB', fontSize: 15, fontWeight: '700' },
+  refreshText: { color: '#60A5FA', fontSize: 13, fontWeight: '700' },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
+  emptyStateCard: {
+    backgroundColor: '#0B1220',
+    borderWidth: 1,
+    borderColor: '#1F2937',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    marginBottom: 6,
+  },
   emptyTitle: { color: '#E5E7EB', fontSize: 18, fontWeight: '700', marginBottom: 6 },
   emptySubtitle: { color: '#94A3B8', textAlign: 'center', lineHeight: 20 },
+  publicChannelItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0B1220',
+    borderWidth: 1,
+    borderColor: '#1F2937',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  channelDescription: { color: '#94A3B8', fontSize: 12, marginTop: 2 },
+  joinButton: {
+    backgroundColor: '#4F46E5',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  joinButtonDisabled: { opacity: 0.6 },
+  joinButtonText: { color: 'white', fontSize: 12, fontWeight: '700' },
   
   chatHeader: {
     flexDirection: 'row',
