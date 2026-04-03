@@ -7,6 +7,26 @@ import { API_URL, SOCKET_URL } from '../constants/Config';
 import io from 'socket.io-client';
 
 let socket: any;
+const MODULES = ['channels', 'discover', 'classmates', 'events', 'announcements'] as const;
+type ModuleTab = typeof MODULES[number];
+
+function timeAgo(date: string) {
+  const s = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
+
+function formatEventDate(d: string) {
+  const date = new Date(d);
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 export default function Chat() {
   const router = useRouter();
@@ -14,7 +34,11 @@ export default function Chat() {
   const { channels, setChannels, messages, setMessages, addMessage, activeChannel, setActiveChannel } = useChatStore();
   const [inputText, setInputText] = useState('');
   const [view, setView] = useState<'channels' | 'messages'>('channels');
+  const [activeModule, setActiveModule] = useState<ModuleTab>('channels');
   const [publicChannels, setPublicChannels] = useState<any[]>([]);
+  const [classmates, setClassmates] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
   const [joiningChannelId, setJoiningChannelId] = useState<string | null>(null);
   // simple auto-scroll mechanism using flatlist
   const flatListRef = useRef<FlatList>(null);
@@ -49,6 +73,51 @@ export default function Chat() {
     }
   }, [token]);
 
+  const fetchClassmates = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/users?q=`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setClassmates(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, [token]);
+
+  const fetchEvents = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/events`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setEvents(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, [token]);
+
+  const fetchAnnouncements = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/announcements`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAnnouncements(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, [token]);
+
   useEffect(() => {
     if (!user || !token) {
       router.replace('/');
@@ -74,7 +143,10 @@ export default function Chat() {
     if (!token) return;
     fetchMyChannels();
     fetchPublicChannels();
-  }, [token, fetchMyChannels, fetchPublicChannels]);
+    fetchClassmates();
+    fetchEvents();
+    fetchAnnouncements();
+  }, [token, fetchMyChannels, fetchPublicChannels, fetchClassmates, fetchEvents, fetchAnnouncements]);
 
   // Fetch Messages when activeChannel changes
   useEffect(() => {
@@ -162,54 +234,140 @@ export default function Chat() {
         </View>
 
         <ScrollView contentContainerStyle={{ padding: 16 }}>
-          <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>My Channels</Text>
-            <TouchableOpacity onPress={() => { fetchMyChannels(); fetchPublicChannels(); }}>
-              <Text style={styles.refreshText}>Refresh</Text>
-            </TouchableOpacity>
-          </View>
-
-          {channels.length === 0 ? (
-            <View style={styles.emptyStateCard}>
-              <Text style={styles.emptyTitle}>No channels yet</Text>
-              <Text style={styles.emptySubtitle}>Join a public channel below to get started.</Text>
-            </View>
-          ) : (
-            channels.map((item) => (
-              <TouchableOpacity 
-                key={item.id}
-                style={styles.channelItem}
-                onPress={() => selectChannel(item.id)}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.moduleTabsRow}>
+            {MODULES.map((tab) => (
+              <TouchableOpacity
+                key={tab}
+                style={[styles.moduleTab, activeModule === tab && styles.moduleTabActive]}
+                onPress={() => setActiveModule(tab)}
               >
-                <Text style={styles.channelIcon}>#</Text>
-                <Text style={styles.channelName}>{item.name}</Text>
+                <Text style={[styles.moduleTabText, activeModule === tab && styles.moduleTabTextActive]}>
+                  {tab === 'channels' ? 'My Channels' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </Text>
               </TouchableOpacity>
-            ))
+            ))}
+          </ScrollView>
+
+          {activeModule === 'channels' && (
+            <>
+              <View style={styles.sectionRow}>
+                <Text style={styles.sectionTitle}>My Channels</Text>
+                <TouchableOpacity onPress={() => fetchMyChannels()}>
+                  <Text style={styles.refreshText}>Refresh</Text>
+                </TouchableOpacity>
+              </View>
+
+              {channels.length === 0 ? (
+                <View style={styles.emptyStateCard}>
+                  <Text style={styles.emptyTitle}>No channels yet</Text>
+                  <Text style={styles.emptySubtitle}>Switch to Discover tab and join a channel.</Text>
+                </View>
+              ) : (
+                channels.map((item) => (
+                  <TouchableOpacity 
+                    key={item.id}
+                    style={styles.channelItem}
+                    onPress={() => selectChannel(item.id)}
+                  >
+                    <Text style={styles.channelIcon}>#</Text>
+                    <Text style={styles.channelName}>{item.name}</Text>
+                  </TouchableOpacity>
+                ))
+              )}
+            </>
           )}
 
-          <Text style={[styles.sectionTitle, { marginTop: 18, marginBottom: 10 }]}>Discover Channels</Text>
-          {publicChannels.filter((c) => !channels.some((my) => my.id === c.id)).length === 0 ? (
-            <View style={styles.emptyStateCard}>
-              <Text style={styles.emptySubtitle}>No public channels available right now.</Text>
-            </View>
-          ) : (
-            publicChannels
-              .filter((c) => !channels.some((my) => my.id === c.id))
-              .map((item) => (
-                <View key={item.id} style={styles.publicChannelItem}>
-                  <View style={{ flex: 1, marginRight: 10 }}>
-                    <Text style={styles.channelName}># {item.name}</Text>
-                    {!!item.description && <Text style={styles.channelDescription}>{item.description}</Text>}
-                  </View>
-                  <TouchableOpacity
-                    style={[styles.joinButton, joiningChannelId === item.id && styles.joinButtonDisabled]}
-                    disabled={joiningChannelId === item.id}
-                    onPress={() => handleJoinChannel(item.id)}
-                  >
-                    <Text style={styles.joinButtonText}>{joiningChannelId === item.id ? 'Joining...' : 'Join'}</Text>
-                  </TouchableOpacity>
+          {activeModule === 'discover' && (
+            <>
+              <View style={styles.sectionRow}>
+                <Text style={styles.sectionTitle}>Discover Channels</Text>
+                <TouchableOpacity onPress={() => fetchPublicChannels()}>
+                  <Text style={styles.refreshText}>Refresh</Text>
+                </TouchableOpacity>
+              </View>
+              {publicChannels.filter((c) => !channels.some((my) => my.id === c.id)).length === 0 ? (
+                <View style={styles.emptyStateCard}>
+                  <Text style={styles.emptySubtitle}>No public channels available right now.</Text>
                 </View>
-              ))
+              ) : (
+                publicChannels
+                  .filter((c) => !channels.some((my) => my.id === c.id))
+                  .map((item) => (
+                    <View key={item.id} style={styles.publicChannelItem}>
+                      <View style={{ flex: 1, marginRight: 10 }}>
+                        <Text style={styles.channelName}># {item.name}</Text>
+                        {!!item.description && <Text style={styles.channelDescription}>{item.description}</Text>}
+                      </View>
+                      <TouchableOpacity
+                        style={[styles.joinButton, joiningChannelId === item.id && styles.joinButtonDisabled]}
+                        disabled={joiningChannelId === item.id}
+                        onPress={() => handleJoinChannel(item.id)}
+                      >
+                        <Text style={styles.joinButtonText}>{joiningChannelId === item.id ? 'Joining...' : 'Join'}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))
+              )}
+            </>
+          )}
+
+          {activeModule === 'classmates' && (
+            <>
+              <View style={styles.sectionRow}>
+                <Text style={styles.sectionTitle}>Classmates</Text>
+                <TouchableOpacity onPress={() => fetchClassmates()}>
+                  <Text style={styles.refreshText}>Refresh</Text>
+                </TouchableOpacity>
+              </View>
+              {classmates.length === 0 ? (
+                <View style={styles.emptyStateCard}><Text style={styles.emptySubtitle}>No classmates found.</Text></View>
+              ) : classmates.map((mate) => (
+                <View key={mate.id} style={styles.infoCard}>
+                  <Text style={styles.infoTitle}>{mate.nickname || mate.username}</Text>
+                  <Text style={styles.infoMeta}>@{mate.username}{mate.subject ? ` • ${mate.subject}` : ''}</Text>
+                </View>
+              ))}
+            </>
+          )}
+
+          {activeModule === 'events' && (
+            <>
+              <View style={styles.sectionRow}>
+                <Text style={styles.sectionTitle}>Events</Text>
+                <TouchableOpacity onPress={() => fetchEvents()}>
+                  <Text style={styles.refreshText}>Refresh</Text>
+                </TouchableOpacity>
+              </View>
+              {events.length === 0 ? (
+                <View style={styles.emptyStateCard}><Text style={styles.emptySubtitle}>No events right now.</Text></View>
+              ) : events.map((ev) => (
+                <View key={ev.id} style={styles.infoCard}>
+                  <Text style={styles.infoTitle}>{ev.emoji || '📅'} {ev.title}</Text>
+                  {!!ev.description && <Text style={styles.infoMeta}>{ev.description}</Text>}
+                  <Text style={styles.infoTime}>{formatEventDate(ev.scheduledAt)}</Text>
+                </View>
+              ))}
+            </>
+          )}
+
+          {activeModule === 'announcements' && (
+            <>
+              <View style={styles.sectionRow}>
+                <Text style={styles.sectionTitle}>Announcements</Text>
+                <TouchableOpacity onPress={() => fetchAnnouncements()}>
+                  <Text style={styles.refreshText}>Refresh</Text>
+                </TouchableOpacity>
+              </View>
+              {announcements.length === 0 ? (
+                <View style={styles.emptyStateCard}><Text style={styles.emptySubtitle}>No announcements yet.</Text></View>
+              ) : announcements.map((ann) => (
+                <View key={ann.id} style={styles.infoCard}>
+                  <Text style={styles.infoTitle}>{ann.title || 'Update'}</Text>
+                  <Text style={styles.infoMeta}>{ann.content}</Text>
+                  <Text style={styles.infoTime}>{timeAgo(ann.createdAt)}</Text>
+                </View>
+              ))}
+            </>
           )}
         </ScrollView>
       </View>
@@ -301,6 +459,21 @@ const styles = StyleSheet.create({
   channelIcon: { color: '#6B7280', fontSize: 18, marginRight: 12 },
   channelName: { color: '#E5E7EB', fontSize: 16, fontWeight: '600' },
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  moduleTabsRow: { gap: 8, marginBottom: 14 },
+  moduleTab: {
+    backgroundColor: '#0B1220',
+    borderWidth: 1,
+    borderColor: '#1F2937',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  moduleTabActive: {
+    backgroundColor: '#4F46E5',
+    borderColor: '#6366F1',
+  },
+  moduleTabText: { color: '#CBD5E1', fontSize: 12, fontWeight: '700' },
+  moduleTabTextActive: { color: '#fff' },
   sectionTitle: { color: '#E5E7EB', fontSize: 15, fontWeight: '700' },
   refreshText: { color: '#60A5FA', fontSize: 13, fontWeight: '700' },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
@@ -334,6 +507,17 @@ const styles = StyleSheet.create({
   },
   joinButtonDisabled: { opacity: 0.6 },
   joinButtonText: { color: 'white', fontSize: 12, fontWeight: '700' },
+  infoCard: {
+    backgroundColor: '#0B1220',
+    borderWidth: 1,
+    borderColor: '#1F2937',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  infoTitle: { color: '#E2E8F0', fontSize: 14, fontWeight: '700', marginBottom: 4 },
+  infoMeta: { color: '#94A3B8', fontSize: 12, lineHeight: 18 },
+  infoTime: { color: '#64748B', fontSize: 11, marginTop: 6 },
   
   chatHeader: {
     flexDirection: 'row',
