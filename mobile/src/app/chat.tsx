@@ -39,7 +39,16 @@ export default function Chat() {
   const [classmates, setClassmates] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [connections, setConnections] = useState<any[]>([]);
   const [joiningChannelId, setJoiningChannelId] = useState<string | null>(null);
+
+  const [showCreateChannel, setShowCreateChannel] = useState(false);
+  const [newChannel, setNewChannel] = useState({ name: '', description: '' });
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [newEvent, setNewEvent] = useState({ title: '', description: '', scheduledAt: '', emoji: '📅' });
+  const [showCreateAnnouncement, setShowCreateAnnouncement] = useState(false);
+  const [newAnnouncement, setNewAnnouncement] = useState({ title: '', content: '' });
+
   // simple auto-scroll mechanism using flatlist
   const flatListRef = useRef<FlatList>(null);
 
@@ -118,6 +127,93 @@ export default function Chat() {
     }
   }, [token]);
 
+  const fetchConnections = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/connections`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setConnections(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, [token]);
+
+  const handleCreateChannel = async () => {
+    if (!newChannel.name.trim()) return;
+    try {
+      const res = await fetch(`${API_URL}/channels`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+         body: JSON.stringify({ name: newChannel.name, description: newChannel.description, isPrivate: false })
+      });
+      if (res.ok) {
+         setShowCreateChannel(false);
+         setNewChannel({name: '', description: ''});
+         fetchMyChannels();
+         fetchPublicChannels();
+      }
+    } catch(e) {}
+  };
+
+  const handleCreateEvent = async () => {
+    if (!newEvent.title.trim() || !newEvent.scheduledAt.trim()) return;
+    try {
+      const dateObj = new Date(newEvent.scheduledAt);
+      const dateStr = isNaN(dateObj.getTime()) ? new Date().toISOString() : dateObj.toISOString();
+      const res = await fetch(`${API_URL}/events`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+         body: JSON.stringify({ ...newEvent, scheduledAt: dateStr })
+      });
+      if (res.ok) {
+         setShowCreateEvent(false);
+         setNewEvent({title: '', description: '', scheduledAt: '', emoji: '📅'});
+         fetchEvents();
+      }
+    } catch(e) {}
+  };
+
+  const handleCreateAnnouncement = async () => {
+    if (!newAnnouncement.title.trim() || !newAnnouncement.content.trim()) return;
+    try {
+      const res = await fetch(`${API_URL}/announcements`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+         body: JSON.stringify({ title: newAnnouncement.title, content: newAnnouncement.content })
+      });
+      if (res.ok) {
+         setShowCreateAnnouncement(false);
+         setNewAnnouncement({title: '', content: ''});
+         fetchAnnouncements();
+      }
+    } catch(e) {}
+  };
+
+  const handleConnect = async (targetUserId: string) => {
+    if (!token) return;
+    const existing = connections.find(c => 
+      (c.userAId === targetUserId && c.userBId === user?.id) || 
+      (c.userBId === targetUserId && c.userAId === user?.id)
+    );
+
+    try {
+      if (existing && existing.status === 'ACCEPTED') {
+        await fetch(`${API_URL}/connections/${existing.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      } else {
+        await fetch(`${API_URL}/connections`, { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ targetUserId })
+        });
+      }
+      fetchConnections();
+    } catch(e) {}
+  };
+
   useEffect(() => {
     if (!user || !token) {
       router.replace('/');
@@ -146,7 +242,8 @@ export default function Chat() {
     fetchClassmates();
     fetchEvents();
     fetchAnnouncements();
-  }, [token, fetchMyChannels, fetchPublicChannels, fetchClassmates, fetchEvents, fetchAnnouncements]);
+    fetchConnections();
+  }, [token, fetchMyChannels, fetchPublicChannels, fetchClassmates, fetchEvents, fetchAnnouncements, fetchConnections]);
 
   // Fetch Messages when activeChannel changes
   useEffect(() => {
@@ -252,10 +349,25 @@ export default function Chat() {
             <>
               <View style={styles.sectionRow}>
                 <Text style={styles.sectionTitle}>My Channels</Text>
-                <TouchableOpacity onPress={() => fetchMyChannels()}>
-                  <Text style={styles.refreshText}>Refresh</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <TouchableOpacity onPress={() => setShowCreateChannel(!showCreateChannel)}>
+                    <Text style={styles.createText}>{showCreateChannel ? 'Cancel' : '+ Create'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => fetchMyChannels()}>
+                    <Text style={styles.refreshText}>Refresh</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
+
+              {showCreateChannel && (
+                <View style={styles.formCard}>
+                  <TextInput style={styles.formInput} placeholder="Channel Name" placeholderTextColor="#6B7280" value={newChannel.name} onChangeText={t => setNewChannel({...newChannel, name: t})} />
+                  <TextInput style={styles.formInput} placeholder="Description (optional)" placeholderTextColor="#6B7280" value={newChannel.description} onChangeText={t => setNewChannel({...newChannel, description: t})} />
+                  <TouchableOpacity style={styles.formSubmitBtn} onPress={handleCreateChannel}>
+                    <Text style={styles.formSubmitText}>Create Channel</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {channels.length === 0 ? (
                 <View style={styles.emptyStateCard}>
@@ -315,18 +427,37 @@ export default function Chat() {
             <>
               <View style={styles.sectionRow}>
                 <Text style={styles.sectionTitle}>Classmates</Text>
-                <TouchableOpacity onPress={() => fetchClassmates()}>
+                <TouchableOpacity onPress={() => { fetchClassmates(); fetchConnections(); }}>
                   <Text style={styles.refreshText}>Refresh</Text>
                 </TouchableOpacity>
               </View>
-              {classmates.length === 0 ? (
+              {classmates.filter(c => c.id !== user?.id).length === 0 ? (
                 <View style={styles.emptyStateCard}><Text style={styles.emptySubtitle}>No classmates found.</Text></View>
-              ) : classmates.map((mate) => (
-                <View key={mate.id} style={styles.infoCard}>
-                  <Text style={styles.infoTitle}>{mate.nickname || mate.username}</Text>
-                  <Text style={styles.infoMeta}>@{mate.username}{mate.subject ? ` • ${mate.subject}` : ''}</Text>
-                </View>
-              ))}
+              ) : classmates.filter(c => c.id !== user?.id).map((mate) => {
+                const conn = connections.find(c => 
+                  (c.userAId === mate.id && c.userBId === user?.id) || 
+                  (c.userBId === mate.id && c.userAId === user?.id)
+                );
+                let btnText = "Connect";
+                let isAcc = false;
+                if (conn) {
+                  if (conn.status === 'ACCEPTED') { btnText = "Connected"; isAcc = true; }
+                  else if (conn.userBId === user?.id) btnText = "Accept";
+                  else if (conn.userAId === user?.id) btnText = "Pending";
+                }
+                
+                return (
+                  <View key={mate.id} style={[styles.infoCard, {flexDirection: 'row', alignItems: 'center'}]}>
+                    <View style={{flex: 1, paddingRight: 8}}>
+                      <Text style={styles.infoTitle}>{mate.nickname || mate.username}</Text>
+                      <Text style={styles.infoMeta}>@{mate.username}{mate.subject ? ` • ${mate.subject}` : ''}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => handleConnect(mate.id)} style={[styles.connectBtn, isAcc && styles.connectedBtn]}>
+                       <Text style={[styles.connectBtnText, isAcc && styles.connectedBtnText]}>{btnText}</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
             </>
           )}
 
@@ -334,10 +465,28 @@ export default function Chat() {
             <>
               <View style={styles.sectionRow}>
                 <Text style={styles.sectionTitle}>Events</Text>
-                <TouchableOpacity onPress={() => fetchEvents()}>
-                  <Text style={styles.refreshText}>Refresh</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <TouchableOpacity onPress={() => setShowCreateEvent(!showCreateEvent)}>
+                    <Text style={styles.createText}>{showCreateEvent ? 'Cancel' : '+ Create'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => fetchEvents()}>
+                    <Text style={styles.refreshText}>Refresh</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
+
+              {showCreateEvent && (
+                <View style={styles.formCard}>
+                  <TextInput style={styles.formInput} placeholder="Event Title" placeholderTextColor="#6B7280" value={newEvent.title} onChangeText={t => setNewEvent({...newEvent, title: t})} />
+                  <TextInput style={styles.formInput} placeholder="Description" placeholderTextColor="#6B7280" value={newEvent.description} onChangeText={t => setNewEvent({...newEvent, description: t})} />
+                  <TextInput style={styles.formInput} placeholder="Date (e.g., 2026-05-10T10:00)" placeholderTextColor="#6B7280" value={newEvent.scheduledAt} onChangeText={t => setNewEvent({...newEvent, scheduledAt: t})} />
+                  <TextInput style={styles.formInput} placeholder="Emoji" placeholderTextColor="#6B7280" value={newEvent.emoji} onChangeText={t => setNewEvent({...newEvent, emoji: t})} />
+                  <TouchableOpacity style={styles.formSubmitBtn} onPress={handleCreateEvent}>
+                    <Text style={styles.formSubmitText}>Create Event</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
               {events.length === 0 ? (
                 <View style={styles.emptyStateCard}><Text style={styles.emptySubtitle}>No events right now.</Text></View>
               ) : events.map((ev) => (
@@ -354,10 +503,26 @@ export default function Chat() {
             <>
               <View style={styles.sectionRow}>
                 <Text style={styles.sectionTitle}>Announcements</Text>
-                <TouchableOpacity onPress={() => fetchAnnouncements()}>
-                  <Text style={styles.refreshText}>Refresh</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <TouchableOpacity onPress={() => setShowCreateAnnouncement(!showCreateAnnouncement)}>
+                    <Text style={styles.createText}>{showCreateAnnouncement ? 'Cancel' : '+ Create'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => fetchAnnouncements()}>
+                    <Text style={styles.refreshText}>Refresh</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
+
+              {showCreateAnnouncement && (
+                <View style={styles.formCard}>
+                  <TextInput style={styles.formInput} placeholder="Title" placeholderTextColor="#6B7280" value={newAnnouncement.title} onChangeText={t => setNewAnnouncement({...newAnnouncement, title: t})} />
+                  <TextInput style={[styles.formInput, { height: 80 }]} placeholder="Content" placeholderTextColor="#6B7280" multiline value={newAnnouncement.content} onChangeText={t => setNewAnnouncement({...newAnnouncement, content: t})} />
+                  <TouchableOpacity style={styles.formSubmitBtn} onPress={handleCreateAnnouncement}>
+                    <Text style={styles.formSubmitText}>Post Announcement</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
               {announcements.length === 0 ? (
                 <View style={styles.emptyStateCard}><Text style={styles.emptySubtitle}>No announcements yet.</Text></View>
               ) : announcements.map((ann) => (
@@ -476,6 +641,15 @@ const styles = StyleSheet.create({
   moduleTabTextActive: { color: '#fff' },
   sectionTitle: { color: '#E5E7EB', fontSize: 15, fontWeight: '700' },
   refreshText: { color: '#60A5FA', fontSize: 13, fontWeight: '700' },
+  createText: { color: '#34D399', fontSize: 13, fontWeight: '700' },
+  formCard: { backgroundColor: '#0B1220', padding: 14, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#1F2937' },
+  formInput: { backgroundColor: '#020617', color: 'white', borderWidth: 1, borderColor: '#374151', borderRadius: 8, padding: 10, marginBottom: 10 },
+  formSubmitBtn: { backgroundColor: '#4F46E5', borderRadius: 8, alignItems: 'center', padding: 12 },
+  formSubmitText: { color: 'white', fontWeight: 'bold' },
+  connectBtn: { backgroundColor: '#4F46E5', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16 },
+  connectedBtn: { backgroundColor: '#1F2937', borderWidth: 1, borderColor: '#374151' },
+  connectBtnText: { color: 'white', fontSize: 13, fontWeight: '700' },
+  connectedBtnText: { color: '#9CA3AF' },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
   emptyStateCard: {
     backgroundColor: '#0B1220',
