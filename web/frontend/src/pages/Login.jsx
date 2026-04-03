@@ -100,9 +100,11 @@ export default function Login() {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 rounded bg-gray-900 border border-red-900 text-red-400 text-sm font-medium flex items-center gap-3  ">
-              <div className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
-              {error}
+            <div className="mb-6 p-3 rounded-lg bg-red-500/10 border-l-4 border-red-500 text-red-500 text-sm font-medium flex items-center gap-3">
+              <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {error === 'Failed to login. Please try again.' ? 'Incorrect email or password. Please verify your credentials and try again.' : error}
             </div>
           )}
 
