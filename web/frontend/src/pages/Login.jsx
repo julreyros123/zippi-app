@@ -5,7 +5,7 @@ import axios from 'axios';
 import { LogIn, Mail, Lock, Eye, EyeOff, CheckSquare, Square } from 'lucide-react';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -14,11 +14,11 @@ export default function Login() {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
 
-  // Auto-fill email if previously remembered
+  // Auto-fill identifier if previously remembered
   useEffect(() => {
-    const savedEmail = localStorage.getItem('zippi_saved_email');
-    if (savedEmail) {
-      setEmail(savedEmail);
+    const savedIdentifier = localStorage.getItem('zippi_saved_identifier');
+    if (savedIdentifier) {
+      setIdentifier(savedIdentifier);
       setRememberMe(true);
     }
   }, []);
@@ -30,13 +30,13 @@ export default function Login() {
 
     try {
       const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
-      const res = await axios.post(`${baseUrl}/api/auth/login`, { email, password });
+      const res = await axios.post(`${baseUrl}/api/auth/login`, { identifier, password });
 
-      // Save or clear remembered email
+      // Save or clear remembered identifier
       if (rememberMe) {
-        localStorage.setItem('zippi_saved_email', email);
+        localStorage.setItem('zippi_saved_identifier', identifier);
       } else {
-        localStorage.removeItem('zippi_saved_email');
+        localStorage.removeItem('zippi_saved_identifier');
       }
       
       login(res.data.user, res.data.token, rememberMe);
@@ -109,17 +109,17 @@ export default function Login() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
+            {/* Email or Username */}
             <div className="space-y-1.5">
-              <label className="text-xs text-gray-400 font-semibold ml-1">Email</label>
+              <label className="text-xs text-gray-400 font-semibold ml-1">Email or Username</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-500 group-focus-within:text-blue-500 transition-colors"><Mail size={18} /></div>
                 <input
-                  type="email" required autoComplete="email"
+                  type="text" required autoComplete="username"
                   className="w-full bg-gray-950 border border-gray-800 text-white rounded pl-11 pr-4 py-3.5 focus:outline-none   focus:border-blue-500 transition-all text-sm placeholder-gray-600 shadow-sm"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com or username"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                 />
               </div>
             </div>

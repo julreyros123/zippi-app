@@ -13,7 +13,7 @@ const registerValidation = [
 ];
 
 const loginValidation = [
-  body('email').isEmail().normalizeEmail().withMessage('Invalid email address'),
+  body('identifier').notEmpty().withMessage('Email or username is required'),
   body('password').notEmpty().withMessage('Password is required'),
 ];
 
@@ -76,16 +76,23 @@ const login = async (req, res) => {
   if (validationError) return;
 
   try {
-    const { email, password } = req.body;
+    const { identifier, password } = req.body;
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findFirst({ 
+      where: { 
+        OR: [
+          { email: identifier },
+          { username: identifier }
+        ]
+      } 
+    });
     if (!user) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ error: 'Invalid email/username or password' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ error: 'Invalid email/username or password' });
     }
 
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
