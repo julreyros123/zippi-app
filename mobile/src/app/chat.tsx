@@ -108,25 +108,36 @@ export default function Chat() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Channels</Text>
-          <TouchableOpacity onPress={() => logout()}>
-            <Text style={{color: '#F87171'}}>Logout</Text>
+          <View>
+            <Text style={styles.headerTitle}>Channels</Text>
+            <Text style={styles.headerSubtitle}>Pick a room to continue chatting</Text>
+          </View>
+          <TouchableOpacity onPress={() => logout()} style={styles.logoutButton}>
+            <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </View>
-        <FlatList
-          data={channels}
-          keyExtractor={item => item.id.toString()}
-          contentContainerStyle={{ padding: 16 }}
-          renderItem={({ item }) => (
-            <TouchableOpacity 
-              style={styles.channelItem} 
-              onPress={() => selectChannel(item.id)}
-            >
-              <Text style={styles.channelIcon}>#</Text>
-              <Text style={styles.channelName}>{item.name}</Text>
-            </TouchableOpacity>
-          )}
-        />
+
+        {channels.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>No channels yet</Text>
+            <Text style={styles.emptySubtitle}>Create or join a channel on web, then refresh this screen.</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={channels}
+            keyExtractor={item => item.id.toString()}
+            contentContainerStyle={{ padding: 16 }}
+            renderItem={({ item }) => (
+              <TouchableOpacity 
+                style={styles.channelItem} 
+                onPress={() => selectChannel(item.id)}
+              >
+                <Text style={styles.channelIcon}>#</Text>
+                <Text style={styles.channelName}>{item.name}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        )}
       </View>
     );
   }
@@ -139,8 +150,8 @@ export default function Chat() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.chatHeader}>
-        <TouchableOpacity onPress={() => setView('channels')} style={{paddingRight: 16}}>
-          <Text style={{color: '#60A5FA', fontSize: 16}}>Back</Text>
+        <TouchableOpacity onPress={() => setView('channels')} style={styles.backButton}>
+          <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.chatHeaderTitle}># {activeChannelObj?.name}</Text>
       </View>
@@ -173,7 +184,7 @@ export default function Chat() {
           placeholder="Type a message..."
           placeholderTextColor="#6B7280"
         />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
+        <TouchableOpacity style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]} onPress={handleSendMessage} disabled={!inputText.trim()}>
           <Text style={styles.sendButtonText}>Send</Text>
         </TouchableOpacity>
       </View>
@@ -184,7 +195,7 @@ export default function Chat() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#030712', paddingTop: Platform.OS === 'ios' ? 50 : 30 },
   header: {
-    height: 60,
+    minHeight: 74,
     borderBottomWidth: 1,
     borderBottomColor: '#1F2937',
     flexDirection: 'row',
@@ -192,17 +203,32 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20
   },
-  headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold' },
+  headerTitle: { color: 'white', fontSize: 20, fontWeight: '800' },
+  headerSubtitle: { color: '#9CA3AF', fontSize: 12, marginTop: 2 },
+  logoutButton: {
+    backgroundColor: '#111827',
+    borderWidth: 1,
+    borderColor: '#374151',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  logoutText: { color: '#FCA5A5', fontSize: 13, fontWeight: '700' },
   channelItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#111827',
+    backgroundColor: '#0B1220',
+    borderWidth: 1,
+    borderColor: '#1F2937',
     marginBottom: 8,
     borderRadius: 12
   },
   channelIcon: { color: '#6B7280', fontSize: 18, marginRight: 12 },
-  channelName: { color: '#E5E7EB', fontSize: 16, fontWeight: '500' },
+  channelName: { color: '#E5E7EB', fontSize: 16, fontWeight: '600' },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
+  emptyTitle: { color: '#E5E7EB', fontSize: 18, fontWeight: '700', marginBottom: 6 },
+  emptySubtitle: { color: '#94A3B8', textAlign: 'center', lineHeight: 20 },
   
   chatHeader: {
     flexDirection: 'row',
@@ -212,7 +238,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#1F2937',
     paddingHorizontal: 16
   },
-  chatHeaderTitle: { color: 'white', fontSize: 18, fontWeight: 'bold' },
+  backButton: { marginRight: 12 },
+  backText: { color: '#60A5FA', fontSize: 15, fontWeight: '700' },
+  chatHeaderTitle: { color: 'white', fontSize: 17, fontWeight: '700' },
   
   messageWrapper: { marginVertical: 4, flexDirection: 'row' },
   messageWrapperMe: { justifyContent: 'flex-end' },
@@ -228,14 +256,16 @@ const styles = StyleSheet.create({
   inputArea: {
     flexDirection: 'row',
     padding: 12,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#020617',
     borderTopWidth: 1,
-    borderTopColor: '#1E293B',
+    borderTopColor: '#1F2937',
     alignItems: 'center'
   },
   textInput: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#111827',
+    borderWidth: 1,
+    borderColor: '#1F2937',
     color: 'white',
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -244,10 +274,11 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     marginLeft: 12,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#4F46E5',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 24
   },
+  sendButtonDisabled: { opacity: 0.55 },
   sendButtonText: { color: 'white', fontWeight: 'bold' }
 });

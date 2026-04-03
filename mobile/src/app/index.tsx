@@ -16,21 +16,25 @@ export default function Index() {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Zippi Chat</Text>
-        <Text style={styles.subtitle}>The cross-platform group chat.</Text>
-        
+        <View style={styles.logoWrap}>
+          <Text style={styles.logoText}>Z</Text>
+        </View>
+
+        <Text style={styles.title}>Welcome to Zippi</Text>
+        <Text style={styles.subtitle}>Real-time group chat and collaborative study spaces, built for mobile.</Text>
+
         <TouchableOpacity 
           style={styles.button} 
           onPress={() => router.push('/login')}
         >
-          <Text style={styles.buttonText}>Get Started</Text>
+          <Text style={styles.buttonText}>Sign In</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={[styles.button, styles.secondaryButton]} 
           onPress={() => router.push('/register')}
         >
-          <Text style={styles.secondaryText}>Create an Account</Text>
+          <Text style={styles.secondaryText}>Create Account</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -40,57 +44,67 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#030712', // gray-950
+    backgroundColor: '#030712',
     justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal: 20,
   },
   content: {
-    alignItems: 'center',
-    padding: 24,
+    alignSelf: 'center',
     width: '100%',
+    maxWidth: 460,
+    backgroundColor: '#020617',
+    borderWidth: 1,
+    borderColor: '#1F2937',
+    borderRadius: 16,
+    padding: 22,
+  },
+  logoWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: '#4F46E5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+  logoText: {
+    color: '#fff',
+    fontSize: 30,
+    fontWeight: '800',
   },
   title: {
-    fontSize: 48,
-    fontWeight: '900',
-    color: '#60A5FA', // blue-400 equivalent for gradient feel
-    marginBottom: 16,
-    textAlign: 'center',
+    fontSize: 34,
+    fontWeight: '800',
+    color: '#F9FAFB',
+    marginBottom: 10,
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 15,
     color: '#9CA3AF',
-    marginBottom: 48,
-    textAlign: 'center',
+    marginBottom: 28,
+    lineHeight: 22,
   },
   button: {
-    backgroundColor: '#2563EB', // blue-600
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 9999,
+    backgroundColor: '#4F46E5',
+    paddingVertical: 15,
+    borderRadius: 12,
     width: '100%',
     alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
+    marginBottom: 12,
   },
   buttonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   secondaryButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: '#111827',
     borderWidth: 1,
     borderColor: '#374151',
-    shadowOpacity: 0,
-    elevation: 0,
   },
   secondaryText: {
     color: '#D1D5DB',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   }
 });
