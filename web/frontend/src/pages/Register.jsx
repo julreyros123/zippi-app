@@ -4,8 +4,6 @@ import useAuthStore from '../store/authStore';
 import axios from 'axios';
 import { UserPlus, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
 export default function Register() {
   const [username, setUsername] = useState('');
   const [nickname, setNickname] = useState('');
@@ -20,19 +18,45 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    const trimmedUsername = username.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedNickname = nickname.trim();
+
     if (password.length < 8) {
       setError('Password must be at least 8 characters.');
       return;
     }
     setLoading(true);
     try {
-      const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
-      const res = await axios.post(`${baseUrl}/api/auth/register`, { username, email, password, nickname });
+      const envApiUrl = import.meta.env.VITE_API_URL;
+      const runtimeFallback = window.location.hostname === 'localhost'
+        ? 'http://localhost:5000'
+        : 'https://zippi-uwwt.onrender.com';
+      const baseUrl = (envApiUrl || runtimeFallback).replace(/\/api\/?$/, '');
+      const res = await axios.post(`${baseUrl}/api/auth/register`, {
+        username: trimmedUsername,
+        email: trimmedEmail,
+        password,
+        nickname: trimmedNickname,
+      });
       login(res.data.user, res.data.token);
       navigate('/dashboard');
     } catch (err) {
       console.error("Register error:", err);
-      setError(err.response?.data?.error || err.message || 'Registration failed. Please try again.');
+      const status = err.response?.status;
+      const apiError = err.response?.data?.error;
+
+      if (!err.response) {
+        setError('Cannot connect to the server right now. Please check your internet and try again.');
+      } else if (status === 400) {
+        setError(apiError || 'Please check your details and try again.');
+      } else if (status === 429) {
+        setError('Too many attempts. Please wait a few minutes and try again.');
+      } else if (status >= 500) {
+        setError('Server is temporarily unavailable. Please try again shortly.');
+      } else {
+        setError(apiError || 'Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -92,8 +116,10 @@ export default function Register() {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 rounded bg-gray-900 border border-red-900 text-red-400 text-sm font-medium flex items-center gap-3  ">
-              <div className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
+            <div className="mb-6 p-3 rounded-lg bg-red-500/10 border-l-4 border-red-500 text-red-500 text-sm font-medium flex items-center gap-3">
+              <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
               {error}
             </div>
           )}
