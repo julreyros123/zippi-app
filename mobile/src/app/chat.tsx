@@ -1,10 +1,11 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, KeyboardAvoidingView, Platform, ScrollView, Alert, SafeAreaView, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import useAuthStore from '../store/authStore';
 import useChatStore from '../store/chatStore';
 import { API_URL, SOCKET_URL } from '../constants/Config';
 import io from 'socket.io-client';
+import { Ionicons } from '@expo/vector-icons';
 
 let socket: any;
 const MODULES = ['channels', 'discover', 'classmates', 'events', 'announcements'] as const;
@@ -41,6 +42,8 @@ export default function Chat() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [connections, setConnections] = useState<any[]>([]);
   const [joiningChannelId, setJoiningChannelId] = useState<string | null>(null);
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [newChannel, setNewChannel] = useState({ name: '', description: '' });
@@ -317,46 +320,92 @@ export default function Chat() {
     }
   };
 
+  const getHeaderContent = () => {
+    switch(activeModule) {
+      case 'channels': return { title: 'My Channels', subtitle: 'Pick a room to continue chatting' };
+      case 'discover': return { title: 'Discover', subtitle: 'Find new public spaces' };
+      case 'classmates': return { title: 'Classmates', subtitle: 'Connect with students in your network' };
+      case 'events': return { title: 'Events', subtitle: 'Upcoming activities and dates' };
+      case 'announcements': return { title: 'Announcements', subtitle: 'Important updates from the faculty' };
+      default: return { title: 'Zippi', subtitle: 'Connect and collaborate' };
+    }
+  };
+
   if (view === 'channels') {
+    const { title, subtitle } = getHeaderContent();
+
     return (
       <View style={styles.container}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerTitle}>Channels</Text>
-            <Text style={styles.headerSubtitle}>Pick a room to continue chatting</Text>
+            <Text style={styles.headerTitle}>{title}</Text>
+            <Text style={styles.headerSubtitle}>{subtitle}</Text>
           </View>
-          <TouchableOpacity onPress={() => logout()} style={styles.logoutButton}>
-            <Text style={styles.logoutText}>Logout</Text>
+          <TouchableOpacity onPress={() => setIsSidebarOpen(true)} style={styles.headerMenuBtn}>
+            <Ionicons name="menu" size={28} color="white" />
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 16 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.moduleTabsRow}>
-            {MODULES.map((tab) => (
-              <TouchableOpacity
-                key={tab}
-                style={[styles.moduleTab, activeModule === tab && styles.moduleTabActive]}
-                onPress={() => setActiveModule(tab)}
-              >
-                <Text style={[styles.moduleTabText, activeModule === tab && styles.moduleTabTextActive]}>
-                  {tab === 'channels' ? 'My Channels' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+        <Modal visible={isSidebarOpen} transparent animationType="fade" onRequestClose={() => setIsSidebarOpen(false)}>
+          <View style={styles.sidebarOverlay}>
+            <TouchableOpacity style={styles.sidebarCloseArea} onPress={() => setIsSidebarOpen(false)} activeOpacity={1} />
+            <View style={styles.sidebarContent}>
+              <View style={styles.sidebarHeader}>
+                <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}>
+                  <View style={styles.sidebarUserAvatar}>
+                    <Text style={styles.sidebarUserAvatarText}>{(user?.username || 'U').charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <View>
+                    <Text style={styles.sidebarTitle}>{user?.nickname || user?.username}</Text>
+                    <Text style={styles.sidebarSubtitle}>@{user?.username}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity onPress={() => setIsSidebarOpen(false)}>
+                  <Ionicons name="close" size={24} color="#9CA3AF" />
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView style={styles.sidebarScroll} contentContainerStyle={{paddingBottom: 40}}>
+                <Text style={styles.sidebarSectionTitle}>Network ({classmates.length} Online)</Text>
+                {classmates.map(cm => {
+                  const conn = connections.find(c => 
+                    (c.userAId === cm.id && c.userBId === user?.id) || 
+                    (c.userBId === cm.id && c.userAId === user?.id)
+                  );
+                  const isConnected = conn?.status === 'ACCEPTED';
+                  
+                  return (
+                  <View key={cm.id} style={styles.sidebarUserItem}>
+                    <View style={styles.sidebarUserAvatarSmall}>
+                      <Text style={styles.sidebarUserAvatarTextSmall}>{(cm.nickname || cm.username).charAt(0).toUpperCase()}</Text>
+                      <View style={styles.onlineIndicator} />
+                    </View>
+                    <View>
+                      <Text style={styles.sidebarUserName}>{cm.nickname || cm.username} {isConnected && <Ionicons name="checkmark-circle" size={14} color="#34D399" />}</Text>
+                      <Text style={styles.sidebarUserStatus}>Online</Text>
+                    </View>
+                  </View>
+                )})}
+              </ScrollView>
+              
+              <View style={styles.sidebarFooter}>
+                <TouchableOpacity style={styles.sidebarLogoutBtn} onPress={logout}>
+                  <Ionicons name="log-out-outline" size={22} color="#FCA5A5" />
+                  <Text style={styles.sidebarLogoutText}>Logout</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
           {activeModule === 'channels' && (
             <>
               <View style={styles.sectionRow}>
                 <Text style={styles.sectionTitle}>My Channels</Text>
-                <View style={{ flexDirection: 'row', gap: 12 }}>
-                  <TouchableOpacity onPress={() => setShowCreateChannel(!showCreateChannel)}>
-                    <Text style={styles.createText}>{showCreateChannel ? 'Cancel' : '+ Create'}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => fetchMyChannels()}>
-                    <Text style={styles.refreshText}>Refresh</Text>
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity onPress={() => fetchMyChannels()}>
+                  <Text style={styles.refreshText}>Refresh</Text>
+                </TouchableOpacity>
               </View>
 
               {showCreateChannel && (
@@ -465,14 +514,9 @@ export default function Chat() {
             <>
               <View style={styles.sectionRow}>
                 <Text style={styles.sectionTitle}>Events</Text>
-                <View style={{ flexDirection: 'row', gap: 12 }}>
-                  <TouchableOpacity onPress={() => setShowCreateEvent(!showCreateEvent)}>
-                    <Text style={styles.createText}>{showCreateEvent ? 'Cancel' : '+ Create'}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => fetchEvents()}>
-                    <Text style={styles.refreshText}>Refresh</Text>
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity onPress={() => fetchEvents()}>
+                  <Text style={styles.refreshText}>Refresh</Text>
+                </TouchableOpacity>
               </View>
 
               {showCreateEvent && (
@@ -503,14 +547,9 @@ export default function Chat() {
             <>
               <View style={styles.sectionRow}>
                 <Text style={styles.sectionTitle}>Announcements</Text>
-                <View style={{ flexDirection: 'row', gap: 12 }}>
-                  <TouchableOpacity onPress={() => setShowCreateAnnouncement(!showCreateAnnouncement)}>
-                    <Text style={styles.createText}>{showCreateAnnouncement ? 'Cancel' : '+ Create'}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => fetchAnnouncements()}>
-                    <Text style={styles.refreshText}>Refresh</Text>
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity onPress={() => fetchAnnouncements()}>
+                  <Text style={styles.refreshText}>Refresh</Text>
+                </TouchableOpacity>
               </View>
 
               {showCreateAnnouncement && (
@@ -535,6 +574,38 @@ export default function Chat() {
             </>
           )}
         </ScrollView>
+
+        <View style={styles.bottomTabBar}>
+          {MODULES.map((tab) => {
+            let iconName = 'chatbubble';
+            if (tab === 'discover') iconName = 'compass';
+            if (tab === 'classmates') iconName = 'people';
+            if (tab === 'events') iconName = 'calendar';
+            if (tab === 'announcements') iconName = 'megaphone';
+            const isActive = activeModule === tab;
+            return (
+              <TouchableOpacity key={tab} style={styles.tabItem} onPress={() => setActiveModule(tab)}>
+                <Ionicons name={isActive ? (iconName as any) : `${iconName}-outline` as any} size={24} color={isActive ? '#6366F1' : '#6B7280'} />
+                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                  {tab === 'channels' ? 'Chat' : tab === 'announcements' ? 'News' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            )
+          })}
+        </View>
+
+        {['channels', 'events', 'announcements'].includes(activeModule) && (
+          <TouchableOpacity 
+            style={styles.fab}
+            onPress={() => {
+              if (activeModule === 'channels') setShowCreateChannel(!showCreateChannel);
+              if (activeModule === 'events') setShowCreateEvent(!showCreateEvent);
+              if (activeModule === 'announcements') setShowCreateAnnouncement(!showCreateAnnouncement);
+            }}
+          >
+            <Ionicons name={(activeModule === 'channels' && showCreateChannel) || (activeModule === 'events' && showCreateEvent) || (activeModule === 'announcements' && showCreateAnnouncement) ? 'close' : 'add'} size={28} color="white" />
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
@@ -611,6 +682,50 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   logoutText: { color: '#FCA5A5', fontSize: 13, fontWeight: '700' },
+  bottomTabBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 70,
+    backgroundColor: '#030712',
+    borderTopWidth: 1,
+    borderTopColor: '#1F2937',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
+  },
+  tabItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  tabLabel: {
+    fontSize: 10,
+    marginTop: 4,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  tabLabelActive: {
+    color: '#6366F1',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 90,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#4F46E5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
   channelItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -624,24 +739,8 @@ const styles = StyleSheet.create({
   channelIcon: { color: '#6B7280', fontSize: 18, marginRight: 12 },
   channelName: { color: '#E5E7EB', fontSize: 16, fontWeight: '600' },
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  moduleTabsRow: { gap: 8, marginBottom: 14 },
-  moduleTab: {
-    backgroundColor: '#0B1220',
-    borderWidth: 1,
-    borderColor: '#1F2937',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  moduleTabActive: {
-    backgroundColor: '#4F46E5',
-    borderColor: '#6366F1',
-  },
-  moduleTabText: { color: '#CBD5E1', fontSize: 12, fontWeight: '700' },
-  moduleTabTextActive: { color: '#fff' },
   sectionTitle: { color: '#E5E7EB', fontSize: 15, fontWeight: '700' },
   refreshText: { color: '#60A5FA', fontSize: 13, fontWeight: '700' },
-  createText: { color: '#34D399', fontSize: 13, fontWeight: '700' },
   formCard: { backgroundColor: '#0B1220', padding: 14, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#1F2937' },
   formInput: { backgroundColor: '#020617', color: 'white', borderWidth: 1, borderColor: '#374151', borderRadius: 8, padding: 10, marginBottom: 10 },
   formSubmitBtn: { backgroundColor: '#4F46E5', borderRadius: 8, alignItems: 'center', padding: 12 },
@@ -656,9 +755,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#1F2937',
     borderRadius: 12,
-    paddingVertical: 16,
+    paddingVertical: 40,
     paddingHorizontal: 14,
     marginBottom: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyTitle: { color: '#E5E7EB', fontSize: 18, fontWeight: '700', marginBottom: 6 },
   emptySubtitle: { color: '#94A3B8', textAlign: 'center', lineHeight: 20 },
@@ -743,5 +844,134 @@ const styles = StyleSheet.create({
     borderRadius: 24
   },
   sendButtonDisabled: { opacity: 0.55 },
-  sendButtonText: { color: 'white', fontWeight: 'bold' }
+  sendButtonText: { color: 'white', fontWeight: 'bold' },
+  
+  sidebarOverlay: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+  },
+  sidebarCloseArea: {
+    flex: 1,
+  },
+  sidebarContent: {
+    width: '75%',
+    maxWidth: 320,
+    backgroundColor: '#020617',
+    borderLeftWidth: 1,
+    borderLeftColor: '#1F2937',
+    height: '100%',
+  },
+  sidebarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1F2937',
+  },
+  sidebarUserAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#4F46E5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sidebarUserAvatarText: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  sidebarTitle: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  sidebarSubtitle: {
+    color: '#9CA3AF',
+    fontSize: 13,
+  },
+  sidebarScroll: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  sidebarSectionTitle: {
+    color: '#9CA3AF',
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  sidebarUserItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#111827',
+  },
+  sidebarUserAvatarSmall: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#374151',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    position: 'relative',
+  },
+  sidebarUserAvatarTextSmall: {
+    color: 'white',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  onlineIndicator: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#10B981',
+    borderWidth: 2,
+    borderColor: '#020617',
+  },
+  sidebarUserName: {
+    color: '#E5E7EB',
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  sidebarUserStatus: {
+    color: '#10B981',
+    fontSize: 12,
+  },
+  sidebarFooter: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#1F2937',
+  },
+  sidebarLogoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#3F2222',
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#7F1D1D',
+  },
+  sidebarLogoutText: {
+    color: '#FCA5A5',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  headerMenuBtn: {
+    padding: 4,
+  }
 });
