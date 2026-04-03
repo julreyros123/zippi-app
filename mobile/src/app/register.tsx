@@ -13,23 +13,41 @@ export default function Register() {
   const { login } = useAuthStore();
 
   const handleRegister = async () => {
-    if (!username || !email || !password) return;
+    const trimmedUsername = username.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+
+    if (!trimmedUsername || !trimmedEmail || !password) {
+      Alert.alert('Missing fields', 'Please fill in username, email, and password.');
+      return;
+    }
+
+    if (password.length < 8) {
+      Alert.alert('Weak password', 'Password must be at least 8 characters.');
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password })
+        body: JSON.stringify({ username: trimmedUsername, email: trimmedEmail, password })
       });
       const data = await res.json();
       if (res.ok) {
         login(data.user, data.token);
         router.replace('/chat');
       } else {
-        Alert.alert('Error', data.error);
+        if (res.status === 400) {
+          Alert.alert('Registration failed', data.error || 'Please check your information and try again.');
+        } else if (res.status === 429) {
+          Alert.alert('Too many attempts', 'Please wait a few minutes and try again.');
+        } else {
+          Alert.alert('Registration failed', data.error || 'Please try again later.');
+        }
       }
     } catch (e) {
-      Alert.alert('Error', 'Could not connect to server');
+      Alert.alert('Connection issue', 'Could not connect to server. Check internet and try again.');
     } finally {
       setLoading(false);
     }

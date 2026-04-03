@@ -5,30 +5,41 @@ import useAuthStore from '../store/authStore';
 import { API_URL } from '../constants/Config';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { login } = useAuthStore();
 
   const handleLogin = async () => {
-    if (!email || !password) return;
+    const trimmedIdentifier = identifier.trim();
+    if (!trimmedIdentifier || !password) {
+      Alert.alert('Missing fields', 'Please enter your email/username and password.');
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ identifier: trimmedIdentifier, password })
       });
       const data = await res.json();
       if (res.ok) {
         login(data.user, data.token);
         router.replace('/chat');
       } else {
-        Alert.alert('Error', data.error);
+        if (res.status === 401) {
+          Alert.alert('Sign in failed', 'Invalid email/username or password.');
+        } else if (res.status === 429) {
+          Alert.alert('Too many attempts', 'Please wait a few minutes and try again.');
+        } else {
+          Alert.alert('Sign in failed', data.error || 'Please try again.');
+        }
       }
     } catch (e) {
-      Alert.alert('Error', 'Could not connect to server');
+      Alert.alert('Connection issue', 'Could not connect to server. Check internet and try again.');
     } finally {
       setLoading(false);
     }
@@ -44,15 +55,14 @@ export default function Login() {
         <Text style={styles.subtitle}>Sign in to continue to Zippi.</Text>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>Email or Username</Text>
           <TextInput 
             style={styles.input}
-            value={email}
-            onChangeText={setEmail}
+            value={identifier}
+            onChangeText={setIdentifier}
             autoCapitalize="none"
-            keyboardType="email-address"
             placeholderTextColor="#6B7280"
-            placeholder="you@example.com"
+            placeholder="you@example.com or username"
           />
         </View>
 
