@@ -10,8 +10,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ChannelInfoPanel from '../components/ChannelInfoPanel';
 
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api';
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+const API_URL = (import.meta.env.VITE_API_URL || 'https://zippi-uwwt.onrender.com') + '/api';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'https://zippi-uwwt.onrender.com';
 
 function debounce(func, wait) {
   let timeout;

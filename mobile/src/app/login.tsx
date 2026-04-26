@@ -3,10 +3,12 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import useAuthStore from '../store/authStore';
 import { API_URL } from '../constants/Config';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function Login() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -82,15 +84,29 @@ export default function Login() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
-            <TextInput 
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              placeholderTextColor="#6B7280"
-              placeholder="••••••••"
-            />
+            <View style={styles.passwordHeader}>
+              <Text style={styles.label}>Password</Text>
+              <TouchableOpacity onPress={() => alert('Forgot Password flow would go here')}>
+                <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.passwordContainer}>
+              <TextInput 
+                style={styles.passwordInput}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                placeholderTextColor="#6B7280"
+                placeholder="••••••••"
+              />
+              <TouchableOpacity 
+                style={styles.eyeIcon} 
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+              >
+                <Ionicons name={showPassword ? "eye" : "eye-off"} size={22} color="#9CA3AF" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TouchableOpacity 
@@ -102,7 +118,7 @@ export default function Login() {
           </TouchableOpacity>
           
           <TouchableOpacity onPress={() => router.push('/register')} style={styles.link}>
-            <Text style={styles.linkText}>Don't have an account? <Text style={styles.linkAccent}>Join Zippi</Text></Text>
+            <Text style={styles.linkText}>Don&apos;t have an account? <Text style={styles.linkAccent}>Join Zippi</Text></Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -151,6 +167,27 @@ const styles = StyleSheet.create({
   errorText: { color: '#FCA5A5', fontSize: 13.5, fontWeight: '600', flex: 1 },
   inputGroup: { marginBottom: 20 },
   label: { color: '#D1D5DB', marginBottom: 8, fontSize: 13, fontWeight: '600' },
+  passwordHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  forgotPasswordText: { color: '#6366F1', fontSize: 13, fontWeight: '600' },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#111827',
+    borderWidth: 1,
+    borderColor: '#374151',
+    borderRadius: 12,
+  },
+  passwordInput: {
+    flex: 1,
+    color: 'white',
+    padding: 16,
+    fontSize: 16,
+  },
+  eyeIcon: {
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   input: {
     backgroundColor: '#111827',
     borderWidth: 1,

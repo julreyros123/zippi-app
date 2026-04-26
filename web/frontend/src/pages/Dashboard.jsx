@@ -12,8 +12,8 @@ import {
   Type, Volume2, AlertTriangle, Sliders, Menu
 } from 'lucide-react';
 
-const API_URL = `${(import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '')}/api`;
-const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
+const API_URL = `${(import.meta.env.VITE_API_URL || 'https://zippi-uwwt.onrender.com/api').replace(/\/api\/?$/, '')}/api`;
+const SOCKET_URL = (import.meta.env.VITE_API_URL || 'https://zippi-uwwt.onrender.com').replace(/\/api\/?$/, '');
 
 const NAV_ITEMS = [
   { id: 'home',         label: 'Home',          icon: Home },
@@ -179,17 +179,25 @@ export default function Dashboard() {
   const handleCreateGroup = async (e) => {
     e.preventDefault();
     setGroupStatus({ loading: true, error: '' });
-    const res = await fetch(`${API_URL}/channels`, {
-      method: 'POST', headers: jsonHeaders, body: JSON.stringify(groupForm)
-    });
-    const data = await res.json();
-    if (res.ok) { 
-      setShowCreateGroup(false); 
-      setGroupForm({ name: '', description: '', isPrivate: true, tags: '' }); 
-      await fetchMyChannels(); 
-      socketRef.current?.emit('dashboard_update', { type: 'group' });
+    try {
+      const res = await fetch(`${API_URL}/channels`, {
+        method: 'POST', headers: jsonHeaders, body: JSON.stringify(groupForm)
+      });
+      let data = {};
+      try { data = await res.json(); } catch(err) {}
+      if (res.ok) { 
+        setGroupStatus({ loading: false, error: '' });
+        setShowCreateGroup(false); 
+        setGroupForm({ name: '', description: '', isPrivate: true, tags: '' }); 
+        await fetchMyChannels(); 
+        socketRef.current?.emit('dashboard_update', { type: 'group' });
+      }
+      else {
+        setGroupStatus({ loading: false, error: data.error || 'Failed to create group' });
+      }
+    } catch (err) {
+      setGroupStatus({ loading: false, error: 'Network error or server is down' });
     }
-    else setGroupStatus({ loading: false, error: data.error || 'Failed' });
   };
 
   const handleCreateEvent = async (e) => {
