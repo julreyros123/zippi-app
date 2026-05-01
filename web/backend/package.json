@@ -6,7 +6,8 @@
   "scripts": {
     "build": "npx prisma generate && npx prisma db push",
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",

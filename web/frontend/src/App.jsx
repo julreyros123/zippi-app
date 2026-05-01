@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Link, Navigate } from 'react-router-dom';
 import useAuthStore from './store/authStore';
-import { MessageSquare, Users, Calendar, UserPlus, Smartphone, Shield, ArrowRight, CheckCircle2, LayoutDashboard } from 'lucide-react';
+import { MessageSquare, Users, Calendar, UserPlus, Smartphone, Shield, ArrowRight, CheckCircle2, LayoutDashboard, BookOpen } from 'lucide-react';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ChatInterface from './pages/ChatInterface';
 import Dashboard from './pages/Dashboard';
 import ForgotPassword from './pages/ForgotPassword';
+import Resources from './pages/Resources';
+import ResourceDetail from './pages/ResourceDetail';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuthStore();
@@ -52,6 +54,8 @@ function App() {
       <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/chat" element={<ProtectedRoute><ChatInterface /></ProtectedRoute>} />
+      <Route path="/resources" element={<ProtectedRoute><Resources /></ProtectedRoute>} />
+      <Route path="/resources/:resourceId" element={<ProtectedRoute><ResourceDetail /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -79,14 +83,14 @@ const FEATURES = [
     desc: 'Find study partners, send connection requests, and build your academic network.'
   },
   {
+    icon: <BookOpen size={22} className="text-white" />,
+    title: 'Free Resources Hub',
+    desc: 'Access curated books, PDFs, and study materials from OpenStax, MIT OCW, and more.'
+  },
+  {
     icon: <Smartphone size={22} className="text-white" />,
     title: 'Cross-Platform',
     desc: 'Use Zippi on web or mobile — your data is always in sync across all your devices.'
-  },
-  {
-    icon: <Shield size={22} className="text-white" />,
-    title: 'Private & Secure',
-    desc: 'JWT-authenticated, rate-limited, and CORS-protected so only your group can access your data.'
   }
 ];
 

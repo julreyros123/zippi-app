@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   { id: 'groups',       label: 'Study Groups',  icon: BookOpen },
   { id: 'discover',     label: 'Discover',      icon: Search },
   { id: 'classmates',   label: 'Classmates',    icon: Users },
+  { id: 'resources',    label: 'Resources',     icon: BookOpen },
   { id: 'events',       label: 'Events',        icon: Calendar },
   { id: 'announcements',label: 'Announcements', icon: Megaphone },
 ];
@@ -1008,6 +1009,30 @@ export default function Dashboard() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ─── RESOURCES ─── */}
+          {activeNav === 'resources' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-display text-2xl font-extrabold text-white">Resources Hub</h2>
+                  <p className="text-gray-500 text-sm mt-1">Discover free books, PDFs, and study materials</p>
+                </div>
+                <button onClick={() => navigate('/resources')}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded bg-gray-700 text-white border-none border border-indigo-500/20 hover:bg-indigo-600/30 transition-colors text-sm font-semibold">
+                  <ArrowRight size={16} /> Browse Resources
+                </button>
+              </div>
+              <div className="text-center py-16 text-gray-600 border-none bg-gray-800/40 p-10 flex flex-col items-center justify-center rounded-md">
+                <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
+                <p className="mb-4">Explore our curated library of free study materials</p>
+                <button onClick={() => navigate('/resources')}
+                  className="px-6 py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors">
+                  Go to Resources
+                </button>
+              </div>
             </div>
           )}
 

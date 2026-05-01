@@ -204,6 +204,7 @@ const connectionsRoutes = require('./routes/connections');
 const eventsRoutes = require('./routes/events');
 const announcementsRoutes = require('./routes/announcements');
 const uploadRoutes = require('./routes/upload');
+const resourcesRoutes = require('./routes/resources');
 
 // Health check
 app.get('/', (req, res) => {
@@ -228,6 +229,7 @@ app.use('/api/connections', connectionsRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/announcements', announcementsRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/resources', resourcesRoutes);
 
 // 404 handler
 app.use((req, res) => {

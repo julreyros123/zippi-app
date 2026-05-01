@@ -30,6 +30,10 @@ model User {
   connectionsA  Connection[]    @relation("ConnectorA")
   connectionsB  Connection[]    @relation("ConnectorB")
 
+  createdResources ResourceReview[]
+  downloads        Download[]
+  resourceReviews  ResourceReview[]
+
   @@index([username])
   @@index([nickname])
   @@index([subject])
@@ -143,4 +147,79 @@ model Connection {
   @@index([userAId])
   @@index([userBId])
   @@index([status])
+}
+
+model Resource {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.Text
+  author      String
+  subject     String
+  category    String   // "Book", "PDF", "Notes", "Lecture Slides"
+  fileUrl     String
+  fileType    String
+  source      String   // "OpenStax", "Project Gutenberg", "MIT OCW", "Community"
+  grade       String[] // ["High School", "College"]
+
+  isbn        String?
+  publishedYear Int?
+  license     String   @default("CC BY 4.0")
+  isActive    Boolean  @default(true)
+  downloadCount Int    @default(0)
+
+  creatorId   String?
+  creator     User?    @relation("CreatedResources", fields: [creatorId], references: [id], onDelete: SetNull)
+
+  tags        ResourceTag[]
+  downloads   Download[]
+  reviews     ResourceReview[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([subject])
+  @@index([category])
+  @@index([source])
+  @@index([title])
+}
+
+model ResourceTag {
+  id          String   @id @default(cuid())
+  name        String
+  resourceId  String
+  resource    Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceId, name])
+  @@index([resourceId])
+}
+
+model Download {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resourceId  String
+  resource    Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  downloadedAt DateTime @default(now())
+
+  @@unique([userId, resourceId])
+  @@index([userId])
+  @@index([resourceId])
+}
+
+model ResourceReview {
+  id          String   @id @default(cuid())
+  rating      Int      // 1-5 stars
+  comment     String   @db.Text
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resourceId  String
+  resource    Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, resourceId])
+  @@index([userId])
+  @@index([resourceId])
 }
