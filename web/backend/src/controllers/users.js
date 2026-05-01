@@ -8,13 +8,14 @@ const listUsers = async (req, res) => {
       where: {
         id: { not: req.user.id },
         OR: q ? [
-          { username: { contains: q } },
-          { nickname: { contains: q } },
-          { subject: { contains: q } }
+          { username: { contains: q, mode: 'insensitive' } },
+          { nickname: { contains: q, mode: 'insensitive' } },
+          { subject: { contains: q, mode: 'insensitive' } }
         ] : undefined
       },
       select: { id: true, username: true, nickname: true, bio: true, subject: true, createdAt: true },
-      orderBy: { username: 'asc' }
+      orderBy: { username: 'asc' },
+      take: 100 // Limit results to 100 users max
     });
 
     // Enrich with online status

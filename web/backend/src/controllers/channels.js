@@ -8,9 +8,7 @@ const getAllChannels = async (req, res) => {
         members: { some: { userId: req.user.id } }
       },
       include: {
-        members: {
-          include: { user: { select: { id: true, username: true, nickname: true } } }
-        }
+        _count: { select: { members: true, messages: true } }
       },
       orderBy: { createdAt: 'asc' }
     });
@@ -29,15 +27,16 @@ const searchPublicChannels = async (req, res) => {
       where: {
         isPrivate: false,
         OR: [
-          { name: { contains: q || '' } },
-          { description: { contains: q || '' } },
-          { tags: { contains: q || '' } }
+          { name: { contains: q || '', mode: 'insensitive' } },
+          { description: { contains: q || '', mode: 'insensitive' } },
+          { tags: { contains: q || '', mode: 'insensitive' } }
         ]
       },
       include: {
         _count: { select: { members: true } }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      take: 50 // Limit results to 50 channels max
     });
     res.status(200).json(channels);
   } catch (error) {

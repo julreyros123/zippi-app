@@ -29,6 +29,10 @@ model User {
   announcements Announcement[]
   connectionsA  Connection[]    @relation("ConnectorA")
   connectionsB  Connection[]    @relation("ConnectorB")
+
+  @@index([username])
+  @@index([nickname])
+  @@index([subject])
 }
 
 model Channel {
@@ -43,6 +47,10 @@ model Channel {
 
   messages    Message[]
   members     ChannelMember[]
+
+  @@index([name])
+  @@index([tags])
+  @@index([isPrivate])
 }
 
 model ChannelMember {
@@ -75,6 +83,10 @@ model Message {
   replyTo   Message?   @relation("ThreadReplies", fields: [replyToId], references: [id])
   replies   Message[]  @relation("ThreadReplies")
   reactions Reaction[]
+
+  @@index([channelId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model Reaction {
@@ -128,4 +140,7 @@ model Connection {
   userB       User     @relation("ConnectorB", fields: [userBId], references: [id])
 
   @@unique([userAId, userBId])
+  @@index([userAId])
+  @@index([userBId])
+  @@index([status])
 }

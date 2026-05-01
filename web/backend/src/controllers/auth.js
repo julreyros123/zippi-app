@@ -52,7 +52,7 @@ const register = async (req, res) => {
       return res.status(400).json({ error: 'User with this email or username already exists' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
       data: { username, email, password: hashedPassword, nickname: nickname || null }
