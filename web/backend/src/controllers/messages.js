@@ -116,11 +116,11 @@ const editMessage = async (req, res) => {
     const userId = req.user.id;
 
     const existingMessage = await prisma.message.findUnique({ where: { id: messageId } });
-    
+
     if (!existingMessage) {
       return res.status(404).json({ error: 'Message not found' });
     }
-    
+
     if (existingMessage.userId !== userId) {
       return res.status(403).json({ error: 'Not authorized to edit this message' });
     }
@@ -146,6 +146,10 @@ const editMessage = async (req, res) => {
       user: updatedMessage.user
     };
 
+    // Emit message_edited event to all users in the channel
+    const { io } = require('../server');
+    io.to(updatedMessage.channelId).emit('message_edited', formattedMessage);
+
     res.status(200).json(formattedMessage);
   } catch (error) {
     console.error('Edit Message Error:', error);
@@ -159,7 +163,7 @@ const deleteMessage = async (req, res) => {
     const userId = req.user.id;
 
     const existingMessage = await prisma.message.findUnique({ where: { id: messageId } });
-    
+
     if (!existingMessage) {
       return res.status(404).json({ error: 'Message not found' });
     }
@@ -171,6 +175,10 @@ const deleteMessage = async (req, res) => {
     // Delete associated reactions first to avoid constraint issues if using real DBs (SQLite/Prisma usually cascade handles this if set, but manual is safer)
     await prisma.reaction.deleteMany({ where: { messageId } });
     await prisma.message.delete({ where: { id: messageId } });
+
+    // Emit message_deleted event to all users in the channel
+    const { io } = require('../server');
+    io.to(existingMessage.channelId).emit('message_deleted', { messageId });
 
     res.status(200).json({ success: true, messageId });
   } catch (error) {

@@ -150,8 +150,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return;
-    socketRef.current = io(SOCKET_URL);
-    
+    socketRef.current = io(SOCKET_URL, {
+      auth: { token }
+    });
+
     socketRef.current.on('dashboard_update', ({ type, targetUserId }) => {
       if (type === 'event') fetchEvents();
       if (type === 'announcement') fetchAnnouncements();
@@ -164,8 +166,39 @@ export default function Dashboard() {
       }
     });
 
+    // Listen for direct connection events
+    socketRef.current.on('connection_requested', ({ connectionId, userAId, userBId }) => {
+      // If this event is about a connection involving the current user, refresh
+      if (userAId === user.id || userBId === user.id) {
+        fetchConnections();
+      }
+    });
+
+    socketRef.current.on('connection_accepted', ({ connectionId, userAId, userBId }) => {
+      // If this event is about a connection involving the current user, refresh
+      if (userAId === user.id || userBId === user.id) {
+        fetchConnections();
+      }
+    });
+
+    socketRef.current.on('connection_removed', ({ connectionId, userAId, userBId }) => {
+      // If this event is about a connection involving the current user, refresh
+      if (userAId === user.id || userBId === user.id) {
+        fetchConnections();
+      }
+    });
+
+    // Listen for user online/offline events to update friend status
+    socketRef.current.on('user_online', ({ userId }) => {
+      fetchConnections();
+    });
+
+    socketRef.current.on('user_offline', ({ userId }) => {
+      fetchConnections();
+    });
+
     return () => socketRef.current?.disconnect();
-  }, [user, fetchEvents, fetchAnnouncements, fetchMyChannels, searchChannels, fetchConnections]);
+  }, [user, token, fetchEvents, fetchAnnouncements, fetchMyChannels, searchChannels, fetchConnections]);
 
   // ── Handlers ──
   const handleJoin = async (channelId) => {
@@ -338,7 +371,7 @@ export default function Dashboard() {
     return evDay.getTime() === today.getTime();
   });
 
-  const onlineCount = classmates.length; // All registered users are "classmates"
+  const onlineCount = classmates.filter(c => c.isOnline).length;
 
   // Temporary UI State for Likes (Doesn't persist yet backend not wired)
   const [likedAnnouncements, setLikedAnnouncements] = useState([]);
@@ -860,7 +893,7 @@ export default function Dashboard() {
                         <div className="relative shrink-0">
                           <img src={`https://ui-avatars.com/api/?background=random&color=fff&name=${cm.username}`} alt={cm.username}
                             className="w-12 h-12 rounded bg-gray-900 border border-gray-700 transition-colors" />
-                          <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-[1.5px] border-gray-900 ${cm.status === 'ONLINE' ? 'bg-emerald-500' : 'bg-gray-500'}`} />
+                          <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-[1.5px] border-gray-900 ${cm.isOnline ? 'bg-emerald-500' : 'bg-gray-500'}`} />
                         </div>
 
                         {/* User Info */}

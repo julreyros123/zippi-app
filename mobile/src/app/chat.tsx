@@ -347,10 +347,32 @@ export default function Chat() {
       addMessage(data);
     });
 
+    // Listen for connection events
+    socket.on('connection_requested', () => {
+      fetchConnections();
+    });
+
+    socket.on('connection_accepted', () => {
+      fetchConnections();
+    });
+
+    socket.on('connection_removed', () => {
+      fetchConnections();
+    });
+
+    // Listen for online/offline events
+    socket.on('user_online', () => {
+      fetchConnections();
+    });
+
+    socket.on('user_offline', () => {
+      fetchConnections();
+    });
+
     return () => {
       if (socket) socket.disconnect();
     };
-  }, [user, token]);
+  }, [user, token, fetchConnections]);
 
   useEffect(() => {
     if (!token) return;
@@ -684,14 +706,14 @@ export default function Chat() {
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.sidebarSectionTitle}>Active Now ({classmates.length})</Text>
-              {classmates.map(cm => {
-                const conn = connections.find(c => 
-                  (c.userAId === cm.id && c.userBId === user?.id) || 
+              <Text style={styles.sidebarSectionTitle}>Active Now ({classmates.filter(c => c.isOnline).length})</Text>
+              {classmates.filter(c => c.isOnline).map(cm => {
+                const conn = connections.find(c =>
+                  (c.userAId === cm.id && c.userBId === user?.id) ||
                   (c.userBId === cm.id && c.userAId === user?.id)
                 );
                 const isConnected = conn?.status === 'ACCEPTED';
-                
+
                 return (
                 <TouchableOpacity key={cm.id} onPress={() => { setIsSidebarOpen(false); setViewingUserId(cm.id); }} style={styles.sidebarUserItem}>
                   <View style={styles.sidebarUserAvatarSmall}>

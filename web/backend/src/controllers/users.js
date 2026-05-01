@@ -16,7 +16,15 @@ const listUsers = async (req, res) => {
       select: { id: true, username: true, nickname: true, bio: true, subject: true, createdAt: true },
       orderBy: { username: 'asc' }
     });
-    res.status(200).json(users);
+
+    // Enrich with online status
+    const onlineUsers = global.onlineUsers || new Map();
+    const enrichedUsers = users.map(user => ({
+      ...user,
+      isOnline: onlineUsers.has(user.id)
+    }));
+
+    res.status(200).json(enrichedUsers);
   } catch (error) {
     console.error('List Users Error:', error);
     res.status(500).json({ error: 'Failed to list users' });

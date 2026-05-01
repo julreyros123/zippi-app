@@ -62,6 +62,9 @@ const io = new Server(server, {
   }
 });
 
+// --- Online users tracking ---
+const onlineUsers = new Map(); // userId -> Set of socket IDs
+
 // --- Socket.io: JWT Auth middleware ---
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
@@ -79,6 +82,15 @@ io.use((socket, next) => {
 
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.userId} (${socket.id})`);
+
+  // Track online user
+  if (!onlineUsers.has(socket.userId)) {
+    onlineUsers.set(socket.userId, new Set());
+  }
+  onlineUsers.get(socket.userId).add(socket.id);
+
+  // Notify all users that this user is online
+  io.emit('user_online', { userId: socket.userId });
 
   socket.on('join_channel', (channelId) => {
     socket.join(channelId);
@@ -121,8 +133,22 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.userId} (${socket.id})`);
+
+    // Remove from online tracking
+    const userSockets = onlineUsers.get(socket.userId);
+    if (userSockets) {
+      userSockets.delete(socket.id);
+      if (userSockets.size === 0) {
+        onlineUsers.delete(socket.userId);
+        // Notify all users that this user is offline
+        io.emit('user_offline', { userId: socket.userId });
+      }
+    }
   });
 });
+
+// Export online users for use in controllers
+global.onlineUsers = onlineUsers;
 
 // --- Routes ---
 const authRoutes = require('./routes/auth');
@@ -174,3 +200,6 @@ server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`CORS allowed origin: ${ALLOWED_ORIGIN}`);
 });
+
+// Export io for use in controllers
+module.exports = { io };
