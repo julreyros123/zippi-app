@@ -109,11 +109,33 @@ export default function Dashboard() {
     if (res.ok) setMyChannels(await res.json());
   }, [token]);
 
+  // Use a ref to track the latest search request and cancel old ones
+  const searchAbortControllerRef = useRef(null);
+
   const searchChannels = useCallback(async (q = '') => {
+    // Cancel previous search if still in flight
+    if (searchAbortControllerRef.current) {
+      searchAbortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this search
+    searchAbortControllerRef.current = new AbortController();
+
     setLoadingSearch(true);
-    const res = await fetch(`${API_URL}/channels/search?q=${encodeURIComponent(q)}`, { headers: authHeaders });
-    if (res.ok) setPublicChannels(await res.json());
-    setLoadingSearch(false);
+    try {
+      const res = await fetch(`${API_URL}/channels/search?q=${encodeURIComponent(q)}`, {
+        headers: authHeaders,
+        signal: searchAbortControllerRef.current.signal
+      });
+      if (res.ok) setPublicChannels(await res.json());
+    } catch (err) {
+      // Ignore abort errors (these are expected when user searches again)
+      if (err.name !== 'AbortError') {
+        console.error('Search error:', err);
+      }
+    } finally {
+      setLoadingSearch(false);
+    }
   }, [token]);
 
   const fetchClassmates = useCallback(async (q = '') => {

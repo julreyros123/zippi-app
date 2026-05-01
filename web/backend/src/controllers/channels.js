@@ -12,6 +12,7 @@ const getAllChannels = async (req, res) => {
       },
       orderBy: { createdAt: 'asc' }
     });
+
     res.status(200).json(channels);
   } catch (error) {
     console.error('Get Channels Error:', error);
@@ -118,11 +119,17 @@ const deleteChannel = async (req, res) => {
       return res.status(403).json({ error: 'Only admins can delete this channel' });
     }
 
-    // Delete in order: reactions → messages → members → channel
-    await prisma.reaction.deleteMany({ where: { message: { channelId } } });
-    await prisma.message.deleteMany({ where: { channelId } });
-    await prisma.channelMember.deleteMany({ where: { channelId } });
-    await prisma.channel.delete({ where: { id: channelId } });
+    // Use transaction to ensure all-or-nothing deletion
+    await prisma.$transaction([
+      // Delete reactions first (they reference messages)
+      prisma.reaction.deleteMany({ where: { message: { channelId } } }),
+      // Delete messages
+      prisma.message.deleteMany({ where: { channelId } }),
+      // Delete channel members
+      prisma.channelMember.deleteMany({ where: { channelId } }),
+      // Finally delete the channel
+      prisma.channel.delete({ where: { id: channelId } })
+    ]);
 
     res.status(200).json({ message: 'Channel deleted successfully' });
   } catch (error) {

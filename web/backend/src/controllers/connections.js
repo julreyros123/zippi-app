@@ -39,19 +39,36 @@ const sendConnection = async (req, res) => {
       return res.status(400).json({ error: 'Connection request already sent' });
     }
 
-    const connection = await prisma.connection.create({
-      data: { userAId: me, userBId: targetUserId, status: 'PENDING' }
-    });
+    try {
+      const connection = await prisma.connection.create({
+        data: { userAId: me, userBId: targetUserId, status: 'PENDING' }
+      });
 
-    // Emit connection_requested event to the recipient
-    io.emit('connection_requested', {
-      connectionId: connection.id,
-      userAId: connection.userAId,
-      userBId: connection.userBId,
-      status: connection.status
-    });
+      // Emit connection_requested event to the recipient
+      io.emit('connection_requested', {
+        connectionId: connection.id,
+        userAId: connection.userAId,
+        userBId: connection.userBId,
+        status: connection.status
+      });
 
-    res.status(201).json({ message: 'Connection request sent', connection });
+      res.status(201).json({ message: 'Connection request sent', connection });
+    } catch (createErr) {
+      // Handle race condition where connection was created between check and create
+      if (createErr.code === 'P2002') {
+        // Unique constraint violated, fetch the newly created connection
+        const raceConnection = await prisma.connection.findFirst({
+          where: {
+            OR: [
+              { userAId: me, userBId: targetUserId },
+              { userAId: targetUserId, userBId: me }
+            ]
+          }
+        });
+        return res.status(400).json({ error: 'Connection already exists', connection: raceConnection });
+      }
+      throw createErr;
+    }
   } catch (error) {
     console.error('Send Connection Error:', error);
     res.status(500).json({ error: 'Failed to send connection' });

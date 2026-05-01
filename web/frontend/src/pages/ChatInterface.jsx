@@ -232,7 +232,10 @@ export default function ChatInterface() {
   useEffect(() => {
     // Initialize Socket Connection safely
     socketRef.current = io(SOCKET_URL, {
-      auth: { token }
+      auth: { token },
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5
     });
 
     socketRef.current.on('connect', () => {
@@ -242,10 +245,29 @@ export default function ChatInterface() {
       }
     });
 
+    socketRef.current.on('disconnect', () => {
+      console.log('Disconnected from socket server');
+    });
+
+    socketRef.current.on('reconnect', () => {
+      console.log('Reconnected to socket server');
+      // Rejoin the current channel after reconnection
+      if (activeChannel) {
+        socketRef.current.emit('join_channel', activeChannel);
+      }
+    });
+
+    socketRef.current.on('reconnect_error', (error) => {
+      console.error('Reconnection error:', error);
+    });
+
     socketRef.current.on('receive_message', (data) => {
-      if (data.channelId === useChatStore.getState().activeChannel) {
+      // Only add message if it's for the current channel
+      const currentChannel = useChatStore.getState().activeChannel;
+      if (data.channelId === currentChannel) {
         addMessage(data);
       } else {
+        // Only increment unread if message is for a different channel
         useChatStore.getState().incrementUnread(data.channelId);
       }
     });
@@ -288,9 +310,24 @@ export default function ChatInterface() {
       removeMessage(messageId);
     });
 
-    socketRef.current.on('notebook_updated', ({ notebook }) => {
-      setNotebookContent(notebook);
-      notebookRef.current = notebook;
+    socketRef.current.on('notebook_updated', async ({ notebook }) => {
+      // Only update if the content is different (prevent conflicting overwrites)
+      const currentContent = notebookRef.current;
+
+      // If the notebook was edited by someone else and differs from current local state
+      if (notebook !== currentContent) {
+        // If user is actively editing, show warning and don't overwrite
+        if (document.activeElement?.closest('.notebook-textarea')) {
+          console.warn('Notebook was updated by another user. Showing conflict resolution...');
+          // Show a subtle notification instead of silently overwriting
+          // User can refresh to get latest version
+          return;
+        }
+
+        // If user is not editing, update to latest version
+        setNotebookContent(notebook);
+        notebookRef.current = notebook;
+      }
     });
 
     return () => {

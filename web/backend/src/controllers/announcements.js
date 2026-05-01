@@ -27,6 +27,20 @@ const createAnnouncement = async (req, res) => {
     const { title, content, badge, fileUrls, fileTypes } = req.body;
     if (!content) return res.status(400).json({ error: 'content is required' });
 
+    // Validate fileUrls and fileTypes match in length
+    if (fileUrls || fileTypes) {
+      const urlsArray = Array.isArray(fileUrls) ? fileUrls : [];
+      const typesArray = Array.isArray(fileTypes) ? fileTypes : [];
+
+      if (urlsArray.length !== typesArray.length) {
+        return res.status(400).json({ error: 'fileUrls and fileTypes must have matching lengths' });
+      }
+
+      if (urlsArray.length > 10) {
+        return res.status(400).json({ error: 'Maximum 10 files allowed' });
+      }
+    }
+
     const ann = await prisma.announcement.create({
       data: {
         title:     title    || null,

@@ -18,16 +18,41 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const ALLOWED_ORIGIN = process.env.CLIENT_URL || 'http://localhost:5173';
 const ALLOWED_ORIGIN_MOBILE = process.env.MOBILE_URL || 'exp://127.0.0.1:19000';
 
+// Whitelist allowed origins for CSRF protection
+const allowedOrigins = [
+  ALLOWED_ORIGIN,
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000'
+];
+
+// Add production origins if env vars are set
+if (process.env.NODE_ENV === 'production' && process.env.PRODUCTION_URL) {
+  allowedOrigins.push(process.env.PRODUCTION_URL);
+}
+
 const app = express();
 const server = http.createServer(app);
 
 // --- Security Headers ---
 app.use(helmet());
 
-// --- CORS: Allow all origins so mobile apps don't get blocked ---
+// --- CORS: Whitelist specific origins for CSRF protection ---
 app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  credentials: true // Allow credentials (cookies, auth headers)
 }));
 
 app.use(express.json());
@@ -50,6 +75,26 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many auth attempts, please try again in 15 minutes.' },
+});
+
+const messageLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // Max 30 messages per minute per user
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many messages, please slow down.' },
+  keyGenerator: (req) => req.user?.id || req.ip,
+  skip: (req) => !req.user, // Only apply to authenticated users
+});
+
+const connectionLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20, // Max 20 connection requests per hour per user
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many connection requests, please try again later.' },
+  keyGenerator: (req) => req.user?.id || req.ip,
+  skip: (req) => !req.user,
 });
 
 app.use(globalLimiter);
@@ -202,4 +247,4 @@ server.listen(PORT, () => {
 });
 
 // Export io for use in controllers
-module.exports = { io };
+module.exports = { io, messageLimiter, connectionLimiter };

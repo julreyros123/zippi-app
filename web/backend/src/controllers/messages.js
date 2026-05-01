@@ -62,7 +62,7 @@ const createMessage = async (req, res) => {
     let fileType = null;
 
     if (req.file) {
-      fileUrl = req.file.path; // Cloudinary returns the secure URL in path
+      fileUrl = req.file.path;
       const mime = req.file.mimetype;
       fileType = mime.startsWith('image/') ? 'image' : 'file';
     }
@@ -71,10 +71,18 @@ const createMessage = async (req, res) => {
       return res.status(400).json({ error: 'Message content or a file is required' });
     }
 
-    // make sure channel exists
-    const channel = await prisma.channel.findUnique({ where: { id: channelId } });
+    // Verify channel exists AND user is a member
+    const channel = await prisma.channel.findUnique({
+      where: { id: channelId },
+      include: { members: { where: { userId } } }
+    });
+
     if (!channel) {
       return res.status(404).json({ error: 'Channel not found' });
+    }
+
+    if (channel.members.length === 0) {
+      return res.status(403).json({ error: 'You are not a member of this channel' });
     }
 
     const message = await prisma.message.create({
